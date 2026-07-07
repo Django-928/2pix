@@ -11,6 +11,10 @@ import swaggerSpec from './swagger.js'
 import initDatabase from './db/init.js'
 import path from 'path'
 import fs from 'fs'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 import authRoutes from './routes/auth.js'
 import accountRoutes from './routes/account.js'
 import systemRoutes from './routes/system.js'
@@ -199,7 +203,7 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 })
 
 // ========== 静态文件服务（前端构建产物）==========
-const distPath = path.resolve(import.meta.dirname, '../dist')
+const distPath = path.resolve(__dirname, '../dist')
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath))
   // SPA fallback: 所有非 API 请求返回 index.html
