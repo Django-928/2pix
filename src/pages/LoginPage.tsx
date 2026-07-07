@@ -3,8 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, ChevronRight, LogOut, LayoutDashboard } from 'lucide-react';
 import useAuthStore from '@/store/useAuthStore';
 
-const VIDEO_URL = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064122_c4750c0e-7476-4b44-94a2-a85a65c63bf2.mp4';
-
 function LogoMark({ className = 'w-8 h-8' }: { className?: string }) {
   return (
     <svg
@@ -23,7 +21,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [videoError, setVideoError] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLogin, loading, logout, user } = useAuthStore();
@@ -42,30 +39,15 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-5 relative overflow-hidden">
-      {/* Background video (same as homepage) */}
+      {/* Background gradient */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        {/* Fallback gradient when video fails or while loading */}
         <div
-          className="absolute inset-0 transition-opacity duration-700"
+          className="absolute inset-0"
           style={{
             background:
               'radial-gradient(circle at 50% 0%, #0b1d3a 0%, #05080f 60%, #000000 100%)',
-            opacity: videoError ? 1 : 0.6,
           }}
         />
-
-        {!videoError && (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            onError={() => setVideoError(true)}
-            className="absolute inset-0 w-full h-full object-cover"
-            src={VIDEO_URL}
-          />
-        )}
-
         <div className="absolute inset-0 bg-[rgba(12,12,12,0.35)]" />
       </div>
 
