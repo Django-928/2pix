@@ -9,6 +9,8 @@ import dotenv from 'dotenv'
 import swaggerUi from 'swagger-ui-express'
 import swaggerSpec from './swagger.js'
 import initDatabase from './db/init.js'
+import path from 'path'
+import fs from 'fs'
 import authRoutes from './routes/auth.js'
 import accountRoutes from './routes/account.js'
 import systemRoutes from './routes/system.js'
@@ -195,6 +197,17 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     error: '服务器内部错误',
   })
 })
+
+// ========== 静态文件服务（前端构建产物）==========
+const distPath = path.resolve(import.meta.dirname, '../dist')
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath))
+  // SPA fallback: 所有非 API 请求返回 index.html
+  app.get('*', (req: Request, res: Response, _next: NextFunction) => {
+    if (req.path.startsWith('/api/')) return _next()
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+}
 
 // ========== 404 处理 ==========
 app.use((req: Request, res: Response) => {
