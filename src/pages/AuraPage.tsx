@@ -478,6 +478,7 @@ function Footer() {
 
 function Background() {
   const { theme } = usePage();
+  const [videoError, setVideoError] = useState(false);
 
   const isLight = theme === 'light';
   const overlay = isLight
@@ -486,50 +487,28 @@ function Background() {
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none">
+      {/* Fallback gradient shown while video loads or on error */}
       <div
         className="absolute inset-0 transition-opacity duration-700"
         style={{
           background: isLight
             ? 'radial-gradient(circle at 50% 0%, #eef7ff 0%, #f8f9fa 60%, #e8eaed 100%)'
             : 'radial-gradient(circle at 50% 0%, #0b1d3a 0%, #05080f 60%, #000000 100%)',
-          opacity: 1,
+          opacity: videoError ? 1 : 0.6,
         }}
       />
 
-      {/* Animated subtle gradient orbs for visual depth */}
-      <div
-        className="absolute inset-0 overflow-hidden"
-        style={{ opacity: isLight ? 0.3 : 0.4 }}
-      >
-        <div
-          className="absolute rounded-full animate-pulse"
-          style={{
-            width: 600,
-            height: 600,
-            top: '-10%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: isLight
-              ? 'radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%)'
-              : 'radial-gradient(circle, rgba(0,180,255,0.12), transparent 70%)',
-            animationDuration: '8s',
-          }}
+      {!videoError && (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          onError={() => setVideoError(true)}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          src="/videos/bg.mp4"
         />
-        <div
-          className="absolute rounded-full animate-pulse"
-          style={{
-            width: 400,
-            height: 400,
-            bottom: '10%',
-            right: '-5%',
-            background: isLight
-              ? 'radial-gradient(circle, rgba(168,85,247,0.1), transparent 70%)'
-              : 'radial-gradient(circle, rgba(100,60,255,0.1), transparent 70%)',
-            animationDuration: '6s',
-            animationDelay: '2s',
-          }}
-        />
-      </div>
+      )}
 
       <div
         className="absolute inset-0 transition-all duration-500"

@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [videoError, setVideoError] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLogin, loading, logout, user } = useAuthStore();
@@ -39,15 +40,27 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-5 relative overflow-hidden">
-      {/* Background gradient */}
+      {/* Background video with gradient fallback */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 transition-opacity duration-700"
           style={{
             background:
               'radial-gradient(circle at 50% 0%, #0b1d3a 0%, #05080f 60%, #000000 100%)',
+            opacity: videoError ? 1 : 0.6,
           }}
         />
+        {!videoError && (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            onError={() => setVideoError(true)}
+            className="absolute inset-0 w-full h-full object-cover"
+            src="/videos/bg.mp4"
+          />
+        )}
         <div className="absolute inset-0 bg-[rgba(12,12,12,0.35)]" />
       </div>
 
