@@ -205,9 +205,17 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 })
 
 // ========== 视频文件服务 ==========
-const videoPath = '/www/sites/www.2pix.cn/index/videos'
-if (fs.existsSync(videoPath)) {
-  app.use('/videos', express.static(videoPath))
+// 优先从 dist/videos 提供（Vite构建时从public/复制），兜底到项目 public/videos
+const distVideoPath = path.resolve(__dirname, '../dist/videos');
+const projectVideoPath = path.resolve(__dirname, '../public/videos');
+const legacyVideoPath = '/www/sites/www.2pix.cn/index/videos';
+
+if (fs.existsSync(distVideoPath)) {
+  app.use('/videos', express.static(distVideoPath));
+} else if (fs.existsSync(projectVideoPath)) {
+  app.use('/videos', express.static(projectVideoPath));
+} else if (fs.existsSync(legacyVideoPath)) {
+  app.use('/videos', express.static(legacyVideoPath));
 }
 
 // ========== 静态文件服务（前端构建产物）==========
