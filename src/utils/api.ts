@@ -10,7 +10,7 @@ interface ApiResponse<T = unknown> {
 const getToken = (): string | null => {
   const path = window.location.pathname;
   if (path.startsWith('/admin')) {
-    return localStorage.getItem('admin_token') || localStorage.getItem('user_token');
+    return localStorage.getItem('admin_token');
   }
   return localStorage.getItem('user_token') || localStorage.getItem('admin_token');
 };

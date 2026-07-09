@@ -43,6 +43,7 @@ import adminRedeemCodesRoutes from './routes/admin/redeemCodes.js'
 import adminRefundsRoutes from './routes/admin/refunds.js'
 import adminMembershipPlansRoutes from './routes/admin/membershipPlans.js'
 import adminModelsRoutes, { publicRouter as publicModelsRoutes } from './routes/admin/models.js'
+import pricingRoutes from './routes/pricing.js'
 
 dotenv.config()
 
@@ -176,6 +177,7 @@ app.use('/api/admin/refunds', adminRefundsRoutes)
 app.use('/api/admin/membership-plans', adminMembershipPlansRoutes)
 app.use('/api/admin/models', adminModelsRoutes)
 app.use('/api/models', publicModelsRoutes)
+app.use('/api/pricing', pricingRoutes)
 
 // ========== 健康检查 ==========
 app.use(
@@ -201,6 +203,12 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     error: '服务器内部错误',
   })
 })
+
+// ========== 视频文件服务 ==========
+const videoPath = '/www/sites/www.2pix.cn/index/videos'
+if (fs.existsSync(videoPath)) {
+  app.use('/videos', express.static(videoPath))
+}
 
 // ========== 静态文件服务（前端构建产物）==========
 const distPath = path.resolve(__dirname, '../dist')

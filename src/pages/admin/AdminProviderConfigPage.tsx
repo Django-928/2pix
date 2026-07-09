@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, RefreshCw, Save, Server, Trash2, Zap } from 'lucide-react';
+import { Plus, RefreshCw, Save, Server, Trash2, Zap, Download, CheckCircle2, Wifi, Loader2 } from 'lucide-react';
 import api from '@/utils/api';
 
 interface ProviderModel {
@@ -25,6 +25,8 @@ interface ProviderConfig {
   providers: ProviderItem[];
 }
 
+type ConnectionStatus = null | { success: boolean; modelCount?: number; latency?: number; error?: string };
+
 const emptyProvider: ProviderItem = {
   id: '',
   name: '',
@@ -42,6 +44,10 @@ export default function AdminProviderConfigPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ total: number; added: number; existing: number } | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<Record<string, ConnectionStatus>>({});
 
   const selectedProvider = config.providers.find((item) => item.id === selectedId) || config.providers[0] || emptyProvider;
 
@@ -124,6 +130,50 @@ export default function AdminProviderConfigPage() {
     }
   };
 
+  const syncModels = async () => {
+    if (!selectedProvider.id || !selectedProvider.baseUrl || !selectedProvider.apiKey) {
+      setNotice('请先填写 Base URL 和 API Key，再同步模型');
+      return;
+    }
+    setSyncing(true);
+    setSyncResult(null);
+    setNotice('');
+    try {
+      const data = await api.post<{ success: boolean; data: { total: number; added: number; existing: number; models: ProviderModel[] } }>(
+        '/admin/configs/providers/sync-models',
+        { providerId: selectedProvider.id },
+      );
+      setSyncResult({ total: data.data.total, added: data.data.added, existing: data.data.existing });
+      setNotice(`同步成功：共 ${data.data.total} 个模型，新增 ${data.data.added} 个，已存在 ${data.data.existing} 个`);
+      // 重新加载配置以获取同步后的模型列表
+      await loadConfig();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : '同步失败');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const testConnection = async () => {
+    if (!selectedProvider.id || !selectedProvider.baseUrl || !selectedProvider.apiKey) {
+      setConnectionStatus((prev) => ({ ...prev, [selectedProvider.id]: { success: false, error: '请先填写 Base URL 和 API Key' } }));
+      return;
+    }
+    setTesting(true);
+    try {
+      const data = await api.post<{ success: boolean; modelCount?: number; latency?: number; error?: string }>(
+        '/admin/configs/providers/test-connection',
+        { providerId: selectedProvider.id },
+      );
+      setConnectionStatus((prev) => ({ ...prev, [selectedProvider.id]: { success: true, modelCount: data.modelCount, latency: data.latency } }));
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '测试连接失败';
+      setConnectionStatus((prev) => ({ ...prev, [selectedProvider.id]: { success: false, error: msg } }));
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const inputClass = 'w-full rounded-xl border border-purple-500/10 bg-dark-900/50 px-3 py-2.5 text-sm text-dark-200 outline-none transition focus:border-purple-500/30';
   const labelClass = 'space-y-2 text-sm text-dark-300';
 
@@ -152,7 +202,7 @@ export default function AdminProviderConfigPage() {
       </div>
 
       {notice && (
-        <div className={`rounded-2xl border px-4 py-3 text-sm ${notice.includes('保存') ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-red-500/20 bg-red-500/10 text-red-300'}`}>
+        <div className={`rounded-2xl border px-4 py-3 text-sm ${notice.includes('保存') || notice.includes('同步成功') ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-red-500/20 bg-red-500/10 text-red-300'}`}>
           {notice}
         </div>
       )}
@@ -191,21 +241,34 @@ export default function AdminProviderConfigPage() {
           {config.providers.length === 0 ? (
             <div className="p-4 text-sm text-dark-500">暂无平台，请新增。</div>
           ) : (
-            config.providers.map((provider) => (
-              <button
-                key={provider.id}
-                onClick={() => setSelectedId(provider.id)}
-                className={`mb-2 w-full rounded-xl p-3 text-left transition ${selectedProvider.id === provider.id ? 'bg-purple-500/15 text-purple-200' : 'text-dark-400 hover:bg-dark-700/50 hover:text-dark-200'}`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{provider.name}</span>
-                  <span className={`rounded px-1.5 py-0.5 text-[10px] ${provider.enabled ? 'bg-emerald-500/10 text-emerald-300' : 'bg-dark-700 text-dark-500'}`}>
-                    {provider.enabled ? '启用' : '停用'}
-                  </span>
-                </div>
-                <p className="mt-1 truncate text-xs opacity-70">{provider.baseUrl}</p>
-              </button>
-            ))
+            config.providers.map((provider) => {
+              const status = connectionStatus[provider.id];
+              return (
+                <button
+                  key={provider.id}
+                  onClick={() => setSelectedId(provider.id)}
+                  className={`mb-2 w-full rounded-xl p-3 text-left transition ${selectedProvider.id === provider.id ? 'bg-purple-500/15 text-purple-200' : 'text-dark-400 hover:bg-dark-700/50 hover:text-dark-200'}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {/* 状态指示灯 */}
+                      <span className={`inline-block h-2 w-2 rounded-full ${provider.enabled ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                      <span className="text-sm font-medium">{provider.name || provider.id}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {/* 已测试指示 */}
+                      {status && (
+                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${status.success ? 'bg-cyan-400' : 'bg-orange-400'}`} title={status.success ? '连接测试通过' : '连接测试失败'} />
+                      )}
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] ${provider.enabled ? 'bg-emerald-500/10 text-emerald-300' : 'bg-dark-700 text-dark-500'}`}>
+                        {provider.enabled ? '启用' : '停用'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-1 truncate text-xs opacity-70">{provider.baseUrl}</p>
+                </button>
+              );
+            })
           )}
         </aside>
 
@@ -221,10 +284,56 @@ export default function AdminProviderConfigPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <label className={labelClass}>平台 ID<input className={inputClass} value={selectedProvider.id} onChange={(e) => updateProvider({ id: e.target.value })} /></label>
                 <label className={labelClass}>平台名称<input className={inputClass} value={selectedProvider.name} onChange={(e) => updateProvider({ name: e.target.value })} /></label>
-                <label className={`${labelClass} md:col-span-2`}>Base URL<input className={inputClass} value={selectedProvider.baseUrl} onChange={(e) => updateProvider({ baseUrl: e.target.value })} /></label>
-                <label className={`${labelClass} md:col-span-2`}>API Key
-                  <input type="password" className={inputClass} value={selectedProvider.apiKey} onChange={(e) => updateProvider({ apiKey: e.target.value })} placeholder="粘贴 API Key，留空保留原密钥" />
-                </label>
+                <div className={`${labelClass} md:col-span-2`}>
+                  Base URL
+                  <div className="flex gap-2">
+                    <input className={`${inputClass} flex-1`} value={selectedProvider.baseUrl} onChange={(e) => updateProvider({ baseUrl: e.target.value })} />
+                    <button
+                      onClick={testConnection}
+                      disabled={testing || !selectedProvider.baseUrl || !selectedProvider.apiKey}
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 px-3 py-2.5 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/10 disabled:opacity-40"
+                      title="测试连接"
+                    >
+                      {testing ? <Loader2 size={16} className="animate-spin" /> : <Wifi size={16} />}
+                      {testing ? '测试中...' : '测试连接'}
+                    </button>
+                  </div>
+                </div>
+                <div className={`${labelClass} md:col-span-2`}>
+                  API Key
+                  <div className="flex gap-2">
+                    <input type="password" className={`${inputClass} flex-1`} value={selectedProvider.apiKey} onChange={(e) => updateProvider({ apiKey: e.target.value })} placeholder="粘贴 API Key，留空保留原密钥" />
+                    <button
+                      onClick={testConnection}
+                      disabled={testing || !selectedProvider.baseUrl || !selectedProvider.apiKey}
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 px-3 py-2.5 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/10 disabled:opacity-40"
+                      title="测试连接"
+                    >
+                      {testing ? <Loader2 size={16} className="animate-spin" /> : <Wifi size={16} />}
+                      {testing ? '测试中...' : '测试'}
+                    </button>
+                  </div>
+                </div>
+                {/* 连接测试结果 */}
+                {connectionStatus[selectedProvider.id] && (
+                  <div className={`md:col-span-2 flex items-center gap-3 rounded-xl border px-4 py-3 text-sm ${
+                    connectionStatus[selectedProvider.id]?.success
+                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                      : 'border-red-500/20 bg-red-500/10 text-red-300'
+                  }`}>
+                    {connectionStatus[selectedProvider.id]?.success ? (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>连接成功，延迟 {connectionStatus[selectedProvider.id]?.latency}ms，{connectionStatus[selectedProvider.id]?.modelCount} 个模型可用</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wifi size={16} className="text-red-400" />
+                        <span>连接失败：{connectionStatus[selectedProvider.id]?.error}</span>
+                      </>
+                    )}
+                  </div>
+                )}
                 <label className={labelClass}>超时时间（秒）<input type="number" className={inputClass} value={selectedProvider.timeoutSeconds} onChange={(e) => updateProvider({ timeoutSeconds: Number(e.target.value) })} /></label>
                 <label className={labelClass}>成本倍率<input type="number" step="0.01" className={inputClass} value={selectedProvider.costMultiplier} onChange={(e) => updateProvider({ costMultiplier: Number(e.target.value) })} /></label>
                 <label className="flex items-center gap-2 text-sm text-dark-300">
@@ -238,13 +347,35 @@ export default function AdminProviderConfigPage() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold text-dark-100">模型映射</h2>
-                  <p className="mt-1 text-xs text-dark-500">把前台模型 ID 映射到 kie.ai 等上游模型 ID。</p>
+                  <p className="mt-1 text-xs text-dark-500">把前台模型 ID 映射到上游模型 ID，或点击同步自动获取上游模型库。</p>
                 </div>
-                <button onClick={addModel} className="inline-flex items-center gap-2 rounded-xl border border-purple-500/20 px-3 py-2 text-sm text-purple-300 transition hover:bg-purple-500/10">
-                  <Plus size={16} />
-                  添加映射
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={syncModels}
+                    disabled={syncing || !selectedProvider.baseUrl || !selectedProvider.apiKey}
+                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 px-3 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/10 disabled:opacity-40"
+                    title="从上游 API 自动同步模型列表"
+                  >
+                    {syncing ? <RefreshCw size={16} className="animate-spin" /> : <Download size={16} />}
+                    {syncing ? '同步中...' : '同步模型'}
+                  </button>
+                  <button onClick={addModel} className="inline-flex items-center gap-2 rounded-xl border border-purple-500/20 px-3 py-2 text-sm text-purple-300 transition hover:bg-purple-500/10">
+                    <Plus size={16} />
+                    添加映射
+                  </button>
+                </div>
               </div>
+
+              {/* 同步结果统计 */}
+              {syncResult && (
+                <div className="mb-4 flex items-center gap-4 rounded-xl border border-cyan-500/15 bg-cyan-500/5 px-4 py-3 text-sm">
+                  <CheckCircle2 size={16} className="text-cyan-400" />
+                  <span className="text-cyan-200">
+                    共发现 <strong>{syncResult.total}</strong> 个模型，新增 <strong>{syncResult.added}</strong> 个，已存在 <strong>{syncResult.existing}</strong> 个
+                  </span>
+                </div>
+              )}
+
               <div className="space-y-3">
                 {selectedProvider.models.map((model, index) => (
                   <div key={`${model.localModel}-${index}`} className="grid gap-3 rounded-2xl border border-purple-500/10 bg-dark-900/40 p-4 md:grid-cols-[1fr_1fr_130px_80px_40px]">

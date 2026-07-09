@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Database, Download, HardDrive, Plus, RefreshCw, Trash2, Table2, Clock, AlertTriangle } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface BackupInfo {
@@ -30,6 +31,7 @@ const formatSize = (bytes: number) => {
 };
 
 export default function AdminBackupPage() {
+  const toast = useToast();
   const [data, setData] = useState<BackupListData | null>(null);
   const [dbStats, setDbStats] = useState<DbStats | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,7 +62,7 @@ export default function AdminBackupPage() {
       await api.post('/admin/backups/create');
       await loadData();
     } catch (error) {
-      alert(error instanceof Error ? error.message : '创建备份失败');
+      toast.error(error instanceof Error ? error.message : '创建备份失败');
     } finally {
       setCreating(false);
     }
@@ -77,7 +79,7 @@ export default function AdminBackupPage() {
       await api.delete(`/admin/backups/${encodeURIComponent(backup.filename)}`);
       await loadData();
     } catch (error) {
-      alert(error instanceof Error ? error.message : '删除备份失败');
+      toast.error(error instanceof Error ? error.message : '删除备份失败');
     }
   };
 

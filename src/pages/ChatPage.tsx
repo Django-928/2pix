@@ -282,7 +282,7 @@ export default function ChatPage() {
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyPress}
                     placeholder="输入消息..."
                     className="w-full px-4 py-3 rounded-xl bg-dark-900/50 border border-primary-600/30 text-dark-100 placeholder-dark-400 focus:outline-none focus:border-primary-500 resize-none max-h-32"
                     rows={1}

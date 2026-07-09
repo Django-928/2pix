@@ -355,4 +355,291 @@ router.put('/:key', requirePermission('system:config'), async (req: Request, res
   }
 });
 
+/** 测试 provider 连接 */
+router.post('/providers/test-connection', requirePermission('system:config'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { providerId } = req.body;
+
+    if (!providerId || typeof providerId !== 'string') {
+      res.status(400).json({ success: false, error: '缺少 providerId' });
+      return;
+    }
+
+    // 1. 从数据库读取 providers 配置
+    const row = ensureDefaultConfig('providers') as { config_key: string; config_value: string } | null;
+    if (!row) {
+      res.status(500).json({ success: false, error: 'providers 配置不存在' });
+      return;
+    }
+
+    const config = JSON.parse(row.config_value || '{}') as Record<string, unknown>;
+    const providers = config.providers as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(providers)) {
+      res.status(500).json({ success: false, error: 'providers 配置格式异常' });
+      return;
+    }
+
+    const provider = providers.find((p) => p.id === providerId);
+    if (!provider) {
+      res.status(404).json({ success: false, error: `未找到 provider: ${providerId}` });
+      return;
+    }
+
+    // 2. 读取 baseUrl 和 apiKey
+    let baseUrl = (provider.baseUrl as string) || '';
+    const encryptedApiKey = provider.apiKey as string;
+    if (!baseUrl || !encryptedApiKey) {
+      res.status(400).json({ success: false, error: '该 provider 缺少 baseUrl 或 apiKey' });
+      return;
+    }
+
+    const apiKey = decrypt(encryptedApiKey);
+    if (!apiKey) {
+      res.status(400).json({ success: false, error: 'apiKey 解密失败' });
+      return;
+    }
+
+    // 3. 智能处理 baseUrl，确保最终请求 /v1/models
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+    const modelsUrl = baseUrl.endsWith('/v1') ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
+
+    // 4. 调用上游 API（10 秒超时）
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    const startTime = Date.now();
+
+    let response: globalThis.Response;
+    try {
+      response = await fetch(modelsUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+    } catch (fetchError: unknown) {
+      clearTimeout(timeout);
+      const msg = fetchError instanceof Error ? fetchError.message : '未知网络错误';
+      if (msg.includes('abort') || msg.includes('timeout')) {
+        res.status(504).json({ success: false, error: '请求上游模型列表超时（10s）' });
+      } else {
+        res.status(502).json({ success: false, error: `上游请求失败: ${msg}` });
+      }
+      return;
+    }
+    clearTimeout(timeout);
+
+    const latency = Date.now() - startTime;
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      res.status(502).json({
+        success: false,
+        error: `上游返回 HTTP ${response.status}: ${errorText.slice(0, 200)}`,
+      });
+      return;
+    }
+
+    // 5. 解析 OpenAI 标准格式
+    const body = (await response.json()) as { data?: Array<{ id: string; object?: string; owned_by?: string }> };
+    if (!Array.isArray(body.data)) {
+      res.status(502).json({ success: false, error: '上游返回的模型列表格式异常，缺少 data 字段' });
+      return;
+    }
+
+    // 6. 记录操作日志
+    logOperation(
+      req.user?.id,
+      req.user?.username,
+      'test_provider_connection',
+      'system',
+      getClientIp(req),
+      req.headers['user-agent'] || '',
+      { providerId, modelCount: body.data.length, latency }
+    );
+
+    // 7. 返回测试结果
+    res.json({
+      success: true,
+      modelCount: body.data.length,
+      latency,
+    });
+  } catch (error) {
+    console.error('Test provider connection error:', error);
+    res.status(500).json({ success: false, error: '测试连接失败' });
+  }
+});
+
+/** 根据模型名关键词推断分类 */
+function inferCategory(modelId: string): string {
+  const id = modelId.toLowerCase();
+  if (/dall-e|midjourney|flux|image|img|sd|stable-diffusion|paint/.test(id)) return 'image';
+  if (/sora|video|cogvideo|runway|kling|vidu|luma/.test(id)) return 'video';
+  if (/tts|suno|audio|music|speech/.test(id)) return 'audio';
+  return 'chat';
+}
+
+/** 同步上游模型列表 */
+router.post('/providers/sync-models', requirePermission('system:config'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { providerId } = req.body;
+
+    if (!providerId || typeof providerId !== 'string') {
+      res.status(400).json({ success: false, error: '缺少 providerId' });
+      return;
+    }
+
+    // 1. 从数据库读取 providers 配置
+    const row = ensureDefaultConfig('providers') as { config_key: string; config_value: string } | null;
+    if (!row) {
+      res.status(500).json({ success: false, error: 'providers 配置不存在' });
+      return;
+    }
+
+    const config = JSON.parse(row.config_value || '{}') as Record<string, unknown>;
+    const providers = config.providers as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(providers)) {
+      res.status(500).json({ success: false, error: 'providers 配置格式异常' });
+      return;
+    }
+
+    const provider = providers.find((p) => p.id === providerId);
+    if (!provider) {
+      res.status(404).json({ success: false, error: `未找到 provider: ${providerId}` });
+      return;
+    }
+
+    // 2. 读取 baseUrl 和 apiKey
+    let baseUrl = (provider.baseUrl as string) || '';
+    const encryptedApiKey = provider.apiKey as string;
+    if (!baseUrl || !encryptedApiKey) {
+      res.status(400).json({ success: false, error: '该 provider 缺少 baseUrl 或 apiKey' });
+      return;
+    }
+
+    const apiKey = decrypt(encryptedApiKey);
+    if (!apiKey) {
+      res.status(400).json({ success: false, error: 'apiKey 解密失败' });
+      return;
+    }
+
+    // 3. 智能处理 baseUrl，确保最终请求 /v1/models
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+    const modelsUrl = baseUrl.endsWith('/v1') ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
+
+    // 4. 调用上游 API（15 秒超时）
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+
+    let response: globalThis.Response;
+    try {
+      response = await fetch(modelsUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
+    } catch (fetchError: unknown) {
+      clearTimeout(timeout);
+      const msg = fetchError instanceof Error ? fetchError.message : '未知网络错误';
+      if (msg.includes('abort') || msg.includes('timeout')) {
+        res.status(504).json({ success: false, error: '请求上游模型列表超时（15s）' });
+      } else {
+        res.status(502).json({ success: false, error: `上游请求失败: ${msg}` });
+      }
+      return;
+    }
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      res.status(502).json({
+        success: false,
+        error: `上游返回 HTTP ${response.status}: ${errorText.slice(0, 200)}`,
+      });
+      return;
+    }
+
+    // 5. 解析 OpenAI 标准格式
+    const body = (await response.json()) as { data?: Array<{ id: string; object?: string; owned_by?: string }> };
+    if (!Array.isArray(body.data)) {
+      res.status(502).json({ success: false, error: '上游返回的模型列表格式异常，缺少 data 字段' });
+      return;
+    }
+
+    // 6. 合并模型（保留已有、添加新发现）
+    const existingModels = Array.isArray(provider.models)
+      ? (provider.models as Array<Record<string, unknown>>)
+      : [];
+
+    const existingUpstreamSet = new Set(
+      existingModels.map((m) => m.upstreamModel as string)
+    );
+
+    const syncedModels = existingModels.map((m) => ({
+      localModel: m.localModel as string,
+      upstreamModel: m.upstreamModel as string,
+      category: (m.category as string) || 'chat',
+      enabled: m.enabled !== false,
+      isNew: false,
+    }));
+
+    let added = 0;
+    for (const model of body.data) {
+      if (!model.id) continue;
+      if (existingUpstreamSet.has(model.id)) continue;
+
+      syncedModels.push({
+        localModel: model.id,
+        upstreamModel: model.id,
+        category: inferCategory(model.id),
+        enabled: true,
+        isNew: true,
+      });
+      added++;
+    }
+
+    const total = syncedModels.length;
+
+    // 7. 保存回数据库（只更新 models 数组）
+    const cleanModels = syncedModels.map(({ isNew, ...rest }) => rest);
+    provider.models = cleanModels;
+    config.providers = providers;
+
+    db.prepare(`
+      UPDATE admin_configs
+      SET config_value = ?, updated_by = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE config_key = 'providers'
+    `).run(JSON.stringify(config), req.user?.id);
+
+    // 记录操作日志
+    logOperation(
+      req.user?.id,
+      req.user?.username,
+      'sync_provider_models',
+      'system',
+      getClientIp(req),
+      req.headers['user-agent'] || '',
+      { providerId, total, added }
+    );
+
+    // 8. 返回同步结果
+    res.json({
+      success: true,
+      data: {
+        total,
+        added,
+        existing: total - added,
+        models: syncedModels,
+      },
+    });
+  } catch (error) {
+    console.error('Sync provider models error:', error);
+    res.status(500).json({ success: false, error: '同步模型列表失败' });
+  }
+});
+
 export default router;

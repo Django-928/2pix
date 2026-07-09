@@ -9,6 +9,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface Model {
@@ -75,6 +76,7 @@ const emptyFormData: ModelFormData = {
 };
 
 export default function AdminModelsPage() {
+  const toast = useToast();
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -158,7 +160,7 @@ export default function AdminModelsPage() {
       setShowModal(false);
       loadModels();
     } catch (err) {
-      alert(err instanceof Error ? err.message : (isEditing ? '更新失败' : '创建失败'));
+      toast.error(err instanceof Error ? err.message : (isEditing ? '更新失败' : '创建失败'));
     } finally {
       setSubmitting(false);
     }
@@ -172,7 +174,7 @@ export default function AdminModelsPage() {
       await api.put(`/admin/models/${model.id}`, { status: newStatus });
       loadModels();
     } catch (err) {
-      alert(err instanceof Error ? err.message : `${actionText}操作失败`);
+      toast.error(err instanceof Error ? err.message : `${actionText}操作失败`);
     }
   };
 
@@ -184,7 +186,7 @@ export default function AdminModelsPage() {
       setDeleteConfirm(null);
       loadModels();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '删除失败');
+      toast.error(err instanceof Error ? err.message : '删除失败');
     } finally {
       setSubmitting(false);
     }

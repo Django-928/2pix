@@ -41,6 +41,7 @@ interface ProviderGenerateResult {
   url?: string;
   content?: string;
   raw?: unknown;
+  costCredits?: number;
 }
 
 const defaultProviderConfig: ProviderConfig = {
@@ -171,32 +172,60 @@ function getMockResult(input: ProviderGenerateInput, reason = '未配置可用�
 async function requestUpstream(input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): Promise<ProviderGenerateResult> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Math.max(10, provider.timeoutSeconds || 120) * 1000);
-  const baseUrl = provider.baseUrl.replace(/\/$/, '');
-  const endpoint = `${baseUrl}/v1/generate`;
+  // baseUrl 可能已包含路径（如 https://rongchuan.ai/v1/），需要智能拼接 endpoint
+  const baseUrl = provider.baseUrl.replace(/\/+$/, '');
+  const hasV1 = baseUrl.endsWith('/v1');
+  const base = hasV1 ? baseUrl : `${baseUrl}/v1`;
 
   try {
+    let endpoint: string;
+    let body: Record<string, unknown>;
+
+    if (input.category === 'chat') {
+      // 聊天类使用 OpenAI 兼容的 /chat/completions 标准接口
+      endpoint = `${base}/chat/completions`;
+      const messages = (input.params?.messages as Array<{ role: string; content: string }> | undefined) || [
+        { role: 'user', content: input.prompt },
+      ];
+      body = {
+        model: upstreamModel,
+        messages,
+        stream: false,
+      };
+    } else {
+      // 图片/视频/音频生成类使用 /images/generations 或通用 /generate
+      endpoint = input.category === 'image'
+        ? `${base}/images/generations`
+        : `${base}/generate`;
+      body = {
+        model: upstreamModel,
+        prompt: input.prompt,
+        ...input.params,
+      };
+    }
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${provider.apiKey}`,
       },
-      body: JSON.stringify({
-        model: upstreamModel,
-        category: input.category,
-        prompt: input.prompt,
-        ...input.params,
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
 
     const raw = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(`上游请求失败：${response.status}`);
+      const errMsg = (raw as Record<string, unknown>)?.error
+        ? JSON.stringify((raw as Record<string, unknown>).error)
+        : `HTTP ${response.status}`;
+      throw new Error(`上游请求失败：${errMsg}`);
     }
 
+    // OpenAI chat/completions 格式: { choices: [{ message: { content } }] }
+    const openaiContent = extractOpenAIChatContent(raw);
     const url = extractUrl(raw);
-    const content = extractContent(raw);
+    const content = openaiContent || extractContent(raw);
 
     return {
       id: `${input.category}-${Date.now()}`,
@@ -213,17 +242,75 @@ async function requestUpstream(input: ProviderGenerateInput, provider: ProviderI
   }
 }
 
+/** 从 OpenAI chat/completions 响应格式中提取 content */
+function extractOpenAIChatContent(raw: unknown): string | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const data = raw as Record<string, unknown>;
+  const choices = data.choices as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(choices) && choices.length > 0) {
+    const message = choices[0].message as Record<string, unknown> | undefined;
+    if (message && typeof message.content === 'string') return message.content;
+  }
+  // 也检查嵌套在 data 中的情况
+  const nestedData = data.data as Record<string, unknown> | undefined;
+  if (nestedData) {
+    const nestedChoices = nestedData.choices as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(nestedChoices) && nestedChoices.length > 0) {
+      const nestedMsg = nestedChoices[0].message as Record<string, unknown> | undefined;
+      if (nestedMsg && typeof nestedMsg.content === 'string') return nestedMsg.content;
+    }
+  }
+  return undefined;
+}
+
+/** 计算本次调用的积分消耗 */
+function calculateCostCredits(
+  localModel: string,
+  category: ProviderCategory,
+  content?: string,
+): number {
+  const pricing = db.prepare('SELECT * FROM model_pricing WHERE local_model = ? AND enabled = 1').get(localModel) as {
+    cost_per_unit: number;
+    unit_type: string;
+  } | undefined;
+
+  if (!pricing) {
+    // 找不到定价时使用默认值
+    if (category === 'image') return 10;
+    if (category === 'video') return 40;
+    if (category === 'audio') return 5;
+    return 1;
+  }
+
+  if (pricing.unit_type === 'per_1k_tokens') {
+    // chat 类型：根据返回内容粗略估算 token 数（中文约 1.5 字符/token，英文约 4 字符/token）
+    if (!content) return pricing.cost_per_unit;
+    const estimatedTokens = Math.max(1, Math.ceil(content.length / 2));
+    const units = Math.max(1, Math.ceil(estimatedTokens / 1000));
+    return units * pricing.cost_per_unit;
+  }
+
+  // per_call / per_minute 直接返回单价
+  return pricing.cost_per_unit;
+}
+
 export async function generateWithProvider(input: ProviderGenerateInput): Promise<ProviderGenerateResult> {
   const resolved = resolveProvider(input.localModel, input.category);
   if (!resolved) {
-    return getMockResult(input);
+    const mockResult = getMockResult(input);
+    mockResult.costCredits = calculateCostCredits(input.localModel, input.category, mockResult.content);
+    return mockResult;
   }
 
   try {
-    return await requestUpstream(input, resolved.provider, resolved.mapping.upstreamModel);
+    const result = await requestUpstream(input, resolved.provider, resolved.mapping.upstreamModel);
+    result.costCredits = calculateCostCredits(input.localModel, input.category, result.content);
+    return result;
   } catch (error) {
     console.error('Provider request fallback to mock:', error);
-    return getMockResult(input, error instanceof Error ? error.message : '上游请求失败，使用 mock 兜底');
+    const mockResult = getMockResult(input, error instanceof Error ? error.message : '上游请求失败，使用 mock 兜底');
+    mockResult.costCredits = calculateCostCredits(input.localModel, input.category, mockResult.content);
+    return mockResult;
   }
 }
 

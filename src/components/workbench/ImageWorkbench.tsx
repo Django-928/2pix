@@ -59,9 +59,16 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   const { addProject } = useStore();
   const { refreshBalance } = useAccountStore();
 
-  const size = '1024x1024';
-  const style = 'vivid';
-  const numImages = 1;
+  const aspectRatioToSize: Record<string, string> = {
+    '1:1': '1024x1024',
+    '9:16': '768x1360',
+    '16:9': '1360x768',
+    '4:3': '1024x768',
+    '3:2': '1152x768',
+  };
+
+  const size = aspectRatioToSize[aspectRatio] || '1024x1024';
+  const numImages = numImagesState;
 
   const handleUpload = () => {
     fileInputRef.current?.click();
@@ -104,7 +111,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               api.post<ProviderGenerationResponse>('/image/generate', {
                 prompt,
                 model: model.id,
-                style,
+                style: selectedStyle,
                 resolution: size,
                 seed: Date.now() + i,
               }),
@@ -119,7 +126,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             name: prompt.substring(0, 30) + (prompt.length > 30 ? '...' : ''),
             type: 'image',
             status: 'complete',
-            inputParams: { prompt, size, style, numImages },
+            inputParams: { prompt, size, style: selectedStyle, numImages },
             createdAt: new Date().toISOString(),
           });
         },

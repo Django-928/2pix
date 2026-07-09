@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bell, Megaphone, RefreshCw, Search, Send, Users } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface NotificationItem {
@@ -35,6 +36,7 @@ interface SearchUser {
 }
 
 export default function AdminNotificationsPage() {
+  const toast = useToast();
   const [data, setData] = useState<NotificationData | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -88,11 +90,11 @@ export default function AdminNotificationsPage() {
 
   const handleSend = async () => {
     if (!title.trim() || !content.trim()) {
-      alert('标题和内容不能为空');
+      toast.warning('标题和内容不能为空');
       return;
     }
     if (mode === 'users' && selectedIds.length === 0) {
-      alert('请选择至少一个接收用户');
+      toast.warning('请选择至少一个接收用户');
       return;
     }
 
@@ -111,11 +113,11 @@ export default function AdminNotificationsPage() {
         content,
         syncAnnouncement,
       });
-      alert(`发送成功，共 ${result.recipients} 位用户收到通知`);
+      toast.success(`发送成功，共 ${result.recipients} 位用户收到通知`);
       resetForm();
       await loadData();
     } catch (error) {
-      alert(error instanceof Error ? error.message : '发送失败');
+      toast.error(error instanceof Error ? error.message : '发送失败');
     } finally {
       setSending(false);
     }

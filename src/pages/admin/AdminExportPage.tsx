@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Download, FileSpreadsheet, RefreshCw, Upload, Users, CreditCard, FileText, Code2, BarChart3, History, Database } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface ExportStats {
@@ -31,6 +32,7 @@ const EXPORT_CARDS: ExportCard[] = [
 ];
 
 export default function AdminExportPage() {
+  const toast = useToast();
   const [stats, setStats] = useState<ExportStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export default function AdminExportPage() {
       });
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: '导出失败' }));
-        alert(err.error || '导出失败');
+        toast.error(err.error || '导出失败');
         return;
       }
       const blob = await resp.blob();
@@ -85,7 +87,7 @@ export default function AdminExportPage() {
       a.click();
       URL.revokeObjectURL(a.href);
     } catch (error) {
-      alert(error instanceof Error ? error.message : '导出失败');
+      toast.error(error instanceof Error ? error.message : '导出失败');
     } finally {
       setExporting(null);
     }
@@ -105,10 +107,10 @@ export default function AdminExportPage() {
         try {
           const result = await api.post('/admin/ie/users/import', { file: base64 });
           const data = result as unknown as { successCount: number; failCount: number; total: number; errors: string[] };
-          alert(`导入完成：成功 ${data.successCount} 条，失败 ${data.failCount} 条，共 ${data.total} 条${data.errors.length > 0 ? '\n错误：' + data.errors.join('\n') : ''}`);
+          toast.success(`导入完成：成功 ${data.successCount} 条，失败 ${data.failCount} 条，共 ${data.total} 条${data.errors.length > 0 ? '\n错误：' + data.errors.join('\n') : ''}`);
           loadStats().catch(() => undefined);
         } catch (error) {
-          alert(error instanceof Error ? error.message : '导入失败');
+          toast.error(error instanceof Error ? error.message : '导入失败');
         }
       };
       reader.readAsDataURL(file);

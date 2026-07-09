@@ -93,6 +93,16 @@ const defaultModelConfigs: ModelApiConfig[] = [
   },
 ];
 
+/** 将主题同步到 document.documentElement 的 data-theme 属性 */
+function applyThemeToDOM(theme: ThemeMode) {
+  document.documentElement.dataset.theme = theme;
+}
+
+/** 将语言同步到 document.documentElement 的 data-lang 属性 */
+function applyLanguageToDOM(language: LanguageMode) {
+  document.documentElement.dataset.lang = language;
+}
+
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
@@ -101,10 +111,24 @@ export const useSettingsStore = create<SettingsState>()(
       checkedInDate: null,
       demoCredits: 1280,
       modelApiConfigs: defaultModelConfigs,
-      setTheme: (theme) => set({ theme }),
-      toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
-      setLanguage: (language) => set({ language }),
-      toggleLanguage: () => set((state) => ({ language: state.language === 'zh' ? 'en' : 'zh' })),
+      setTheme: (theme) => {
+        set({ theme });
+        applyThemeToDOM(theme);
+      },
+      toggleTheme: () => {
+        const next = get().theme === 'dark' ? 'light' : 'dark';
+        set({ theme: next });
+        applyThemeToDOM(next);
+      },
+      setLanguage: (language) => {
+        set({ language });
+        applyLanguageToDOM(language);
+      },
+      toggleLanguage: () => {
+        const next = get().language === 'zh' ? 'en' : 'zh';
+        set({ language: next });
+        applyLanguageToDOM(next);
+      },
       checkIn: () => {
         if (get().checkedInDate === today()) return false;
         set((state) => ({ checkedInDate: today(), demoCredits: state.demoCredits + 80 }));

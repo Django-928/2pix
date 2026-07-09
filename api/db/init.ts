@@ -364,6 +364,38 @@ export function initDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_ai_models_category ON ai_models(category);
     CREATE INDEX IF NOT EXISTS idx_ai_models_status ON ai_models(status);
+
+    CREATE TABLE IF NOT EXISTS model_pricing (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      local_model TEXT NOT NULL UNIQUE,
+      category TEXT NOT NULL DEFAULT 'chat',
+      display_name TEXT NOT NULL DEFAULT '',
+      cost_per_unit INTEGER NOT NULL DEFAULT 1,
+      unit_type TEXT NOT NULL DEFAULT 'per_call',
+      unit_label TEXT NOT NULL DEFAULT '次',
+      description TEXT DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_model_pricing_category ON model_pricing(category);
+    CREATE INDEX IF NOT EXISTS idx_model_pricing_enabled ON model_pricing(enabled);
+    CREATE INDEX IF NOT EXISTS idx_model_pricing_model ON model_pricing(local_model);
+
+    CREATE TABLE IF NOT EXISTS recharge_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      credits INTEGER NOT NULL,
+      price_yuan REAL NOT NULL,
+      bonus_credits INTEGER NOT NULL DEFAULT 0,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_recharge_plans_enabled ON recharge_plans(enabled);
+    CREATE INDEX IF NOT EXISTS idx_recharge_plans_sort ON recharge_plans(sort_order);
   `);
 
   const addColumnIfMissing = (table: string, column: string, definition: string) => {
@@ -571,6 +603,94 @@ export function initDatabase() {
       });
       insertModelMany(seedModels);
     }
+  }
+
+  // 种子数据：模型积分定价
+  const pricingCount = db.prepare('SELECT COUNT(*) as count FROM model_pricing').get() as { count: number };
+  if (pricingCount.count === 0) {
+    const seedPricing = [
+      // chat 模型 - 按 1K token 计费
+      { local_model: 'gpt-5.5', category: 'chat', display_name: 'GPT-5.5', cost_per_unit: 5, unit_type: 'per_1k_tokens', unit_label: '千Token', description: 'OpenAI 最新大模型' },
+      { local_model: 'gpt-4o', category: 'chat', display_name: 'GPT-4o', cost_per_unit: 4, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '多模态大模型' },
+      { local_model: 'gpt-4o-mini', category: 'chat', display_name: 'GPT-4o mini', cost_per_unit: 1, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '轻量级模型' },
+      { local_model: 'claude-opus', category: 'chat', display_name: 'Claude 3.7 Opus', cost_per_unit: 6, unit_type: 'per_1k_tokens', unit_label: '千Token', description: 'Anthropic 旗舰模型' },
+      { local_model: 'claude-sonnet', category: 'chat', display_name: 'Claude 3.7 Sonnet', cost_per_unit: 3, unit_type: 'per_1k_tokens', unit_label: '千Token', description: 'Anthropic 平衡模型' },
+      { local_model: 'gemini-3-pro', category: 'chat', display_name: 'Gemini 3 Pro', cost_per_unit: 3, unit_type: 'per_1k_tokens', unit_label: '千Token', description: 'Google 最新模型' },
+      { local_model: 'gemini-flash', category: 'chat', display_name: 'Gemini 3 Flash', cost_per_unit: 1, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '高速轻量模型' },
+      { local_model: 'grok-3', category: 'chat', display_name: 'Grok 3', cost_per_unit: 3, unit_type: 'per_1k_tokens', unit_label: '千Token', description: 'xAI 旗舰模型' },
+      { local_model: 'deepseek-v3', category: 'chat', display_name: 'DeepSeek V3', cost_per_unit: 2, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '深度求索模型' },
+      { local_model: 'deepseek-r1', category: 'chat', display_name: 'DeepSeek R1', cost_per_unit: 3, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '推理增强模型' },
+      { local_model: 'qwen-3.7', category: 'chat', display_name: '通义千问 3.7', cost_per_unit: 2, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '阿里大模型' },
+      { local_model: 'glm-5.2', category: 'chat', display_name: 'GLM-5.2', cost_per_unit: 2, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '智谱AI模型' },
+      { local_model: 'kimi-k2', category: 'chat', display_name: 'Kimi K2', cost_per_unit: 2, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '月之暗面模型' },
+      { local_model: 'doubao-pro', category: 'chat', display_name: '豆包 Pro', cost_per_unit: 1, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '字节跳动模型' },
+      { local_model: 'multi-model-collab', category: 'chat', display_name: '多模型协作', cost_per_unit: 4, unit_type: 'per_1k_tokens', unit_label: '千Token', description: '多模型并行协作' },
+      // image 模型 - 按次计费
+      { local_model: 'gpt-image-2', category: 'image', display_name: 'GPT Image 2', cost_per_unit: 15, unit_type: 'per_call', unit_label: '张', description: 'OpenAI 图像生成' },
+      { local_model: 'midjourney-v7', category: 'image', display_name: 'Midjourney V7', cost_per_unit: 20, unit_type: 'per_call', unit_label: '张', description: 'MJ V7 模型' },
+      { local_model: 'flux-1-pro', category: 'image', display_name: 'FLUX 1 Pro', cost_per_unit: 18, unit_type: 'per_call', unit_label: '张', description: 'FLUX 旗舰模型' },
+      { local_model: 'flux-dev', category: 'image', display_name: 'FLUX 1 Dev', cost_per_unit: 10, unit_type: 'per_call', unit_label: '张', description: 'FLUX 开发版' },
+      { local_model: 'nano-banana', category: 'image', display_name: 'Nano Banana', cost_per_unit: 8, unit_type: 'per_call', unit_label: '张', description: '电商产品图模型' },
+      { local_model: 'seedream-5', category: 'image', display_name: 'Seedream 5.0', cost_per_unit: 12, unit_type: 'per_call', unit_label: '张', description: '腾讯图像生成' },
+      { local_model: 'jimeng-3', category: 'image', display_name: '即梦 3.0', cost_per_unit: 10, unit_type: 'per_call', unit_label: '张', description: '字节图像生成' },
+      { local_model: 'wan-2.1', category: 'image', display_name: 'Wan 2.1', cost_per_unit: 10, unit_type: 'per_call', unit_label: '张', description: '阿里图像生成' },
+      { local_model: 'hunyuan-image', category: 'image', display_name: '混元图像', cost_per_unit: 10, unit_type: 'per_call', unit_label: '张', description: '腾讯混元图像' },
+      { local_model: 'stable-diffusion-3', category: 'image', display_name: 'Stable Diffusion 3', cost_per_unit: 8, unit_type: 'per_call', unit_label: '张', description: 'SD3 开源模型' },
+      { local_model: 'dall-e-3', category: 'image', display_name: 'DALL-E 3', cost_per_unit: 12, unit_type: 'per_call', unit_label: '张', description: 'OpenAI 经典图像' },
+      // video 模型 - 按次计费
+      { local_model: 'sora-2', category: 'video', display_name: 'Sora 2', cost_per_unit: 50, unit_type: 'per_call', unit_label: '个', description: 'OpenAI 视频生成' },
+      { local_model: 'veo-3.1', category: 'video', display_name: 'Veo 3.1', cost_per_unit: 50, unit_type: 'per_call', unit_label: '个', description: 'Google 视频生成' },
+      { local_model: 'kling-3', category: 'video', display_name: '可灵 3.0', cost_per_unit: 40, unit_type: 'per_call', unit_label: '个', description: '快手视频生成' },
+      { local_model: 'grok-video', category: 'video', display_name: 'Grok Video', cost_per_unit: 35, unit_type: 'per_call', unit_label: '个', description: 'xAI 视频生成' },
+      { local_model: 'luma-dream', category: 'video', display_name: 'Luma Dream Machine', cost_per_unit: 40, unit_type: 'per_call', unit_label: '个', description: 'Luma AI 视频' },
+      { local_model: 'runway-gen3', category: 'video', display_name: 'Runway Gen-3', cost_per_unit: 40, unit_type: 'per_call', unit_label: '个', description: 'Runway 视频生成' },
+      { local_model: 'vidu-q3', category: 'video', display_name: 'Vidu Q3', cost_per_unit: 35, unit_type: 'per_call', unit_label: '个', description: '生数科技视频' },
+      { local_model: 'seedance', category: 'video', display_name: 'Seedance', cost_per_unit: 35, unit_type: 'per_call', unit_label: '个', description: '腾讯视频生成' },
+      { local_model: 'hailuo-video', category: 'video', display_name: '海螺 AI 视频', cost_per_unit: 35, unit_type: 'per_call', unit_label: '个', description: 'MiniMax 视频' },
+      { local_model: 'pixverse-v3', category: 'video', display_name: 'PixVerse V3', cost_per_unit: 35, unit_type: 'per_call', unit_label: '个', description: '爱诗科技视频' },
+      // audio 模型 - 按次计费
+      { local_model: 'suno-v4-5', category: 'audio', display_name: 'Suno V4.5', cost_per_unit: 20, unit_type: 'per_call', unit_label: '首', description: 'Suno 音乐生成' },
+      { local_model: 'suno-v3', category: 'audio', display_name: 'Suno V3', cost_per_unit: 15, unit_type: 'per_call', unit_label: '首', description: 'Suno 经典音乐' },
+      { local_model: 'hailuo-music', category: 'audio', display_name: '海螺音乐', cost_per_unit: 15, unit_type: 'per_call', unit_label: '首', description: 'MiniMax 音乐' },
+      { local_model: 'gemini-tts', category: 'audio', display_name: 'Gemini 3.1 TTS', cost_per_unit: 5, unit_type: 'per_call', unit_label: '次', description: 'Google 语音合成' },
+      { local_model: 'elevenlabs-v3', category: 'audio', display_name: 'ElevenLabs V3', cost_per_unit: 8, unit_type: 'per_call', unit_label: '次', description: 'ElevenLabs 语音' },
+      { local_model: 'openai-tts', category: 'audio', display_name: 'OpenAI TTS', cost_per_unit: 5, unit_type: 'per_call', unit_label: '次', description: 'OpenAI 语音合成' },
+      { local_model: 'fish-speech', category: 'audio', display_name: 'Fish Speech', cost_per_unit: 3, unit_type: 'per_call', unit_label: '次', description: '开源语音合成' },
+      { local_model: 'edge-tts', category: 'audio', display_name: 'Edge TTS', cost_per_unit: 1, unit_type: 'per_call', unit_label: '次', description: '微软语音合成' },
+      { local_model: 'doubao-tts', category: 'audio', display_name: '豆包语音', cost_per_unit: 3, unit_type: 'per_call', unit_label: '次', description: '字节语音合成' },
+      { local_model: 'xfyun-tts', category: 'audio', display_name: '讯飞语音', cost_per_unit: 3, unit_type: 'per_call', unit_label: '次', description: '科大讯飞语音' },
+    ];
+    const insertPricing = db.prepare(`
+      INSERT INTO model_pricing (local_model, category, display_name, cost_per_unit, unit_type, unit_label, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const insertPricingMany = db.transaction((list: typeof seedPricing) => {
+      for (const item of list) {
+        insertPricing.run(item.local_model, item.category, item.display_name, item.cost_per_unit, item.unit_type, item.unit_label, item.description);
+      }
+    });
+    insertPricingMany(seedPricing);
+  }
+
+  // 种子数据：充值套餐
+  const planCount = db.prepare('SELECT COUNT(*) as count FROM recharge_plans').get() as { count: number };
+  if (planCount.count === 0) {
+    const seedPlans = [
+      { name: '体验包', credits: 100, price_yuan: 10, bonus_credits: 0, enabled: 1, sort_order: 1 },
+      { name: '基础包', credits: 550, price_yuan: 50, bonus_credits: 50, enabled: 1, sort_order: 2 },
+      { name: '进阶包', credits: 1200, price_yuan: 100, bonus_credits: 200, enabled: 1, sort_order: 3 },
+      { name: '专业包', credits: 6500, price_yuan: 500, bonus_credits: 1500, enabled: 1, sort_order: 4 },
+    ];
+    const insertPlan = db.prepare(`
+      INSERT INTO recharge_plans (name, credits, price_yuan, bonus_credits, enabled, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const insertPlanMany = db.transaction((list: typeof seedPlans) => {
+      for (const item of list) {
+        insertPlan.run(item.name, item.credits, item.price_yuan, item.bonus_credits, item.enabled, item.sort_order);
+      }
+    });
+    insertPlanMany(seedPlans);
   }
 
   seedDefaultPlans();

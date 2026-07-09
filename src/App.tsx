@@ -8,6 +8,7 @@ import { useAdminStore } from '@/store/useAdminStore';
 import useAuthStore from '@/store/useAuthStore';
 import useSystemConfigStore from '@/store/useSystemConfigStore';
 import { useStore } from '@/store/useStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { ToastProvider } from '@/components/ui/Toast';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { SkeletonPage } from '@/components/ui/Skeleton';
@@ -50,6 +51,7 @@ const AdminHealthPage = lazy(() => import('@/pages/admin/AdminHealthPage'));
 const AdminProfitPage = lazy(() => import('@/pages/admin/AdminProfitPage'));
 const AdminModelsPage = lazy(() => import('@/pages/admin/AdminModelsPage'));
 const AdminRedeemCodesPage = lazy(() => import('@/pages/admin/AdminRedeemCodesPage'));
+const AdminPricingPage = lazy(() => import('@/pages/admin/AdminPricingPage'));
 
 function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -225,6 +227,17 @@ export default function App() {
   const loadConfig = useSystemConfigStore((s) => s.loadConfig);
   const isLogin = useAuthStore((s) => s.isLogin);
   const loadProjects = useStore((s) => s.loadProjects);
+  const theme = useSettingsStore((s) => s.theme);
+  const language = useSettingsStore((s) => s.language);
+
+  // 应用启动时及 theme/language 变化时同步到 DOM
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.lang = language;
+  }, [language]);
 
   useEffect(() => {
     loadConfig();
@@ -322,20 +335,22 @@ export default function App() {
 
         <Route path="/manju" element={<UserRoute><ManjuPage /></UserRoute>} />
 
-        <Route path="/agent" element={<AgentCenterPage />} />
+        <Route path="/agent" element={<UserRoute><AgentCenterPage /></UserRoute>} />
 
         <Route path="/aura" element={<AuraPage />} />
 
         <Route
           path="/dashboard"
           element={
-            <WorkspaceLayout
-              modelName="工作台"
-              modelIcon="✨"
-              modelDescription="一站式 AI 创作平台，聚合 500+ 全球顶尖大模型。"
-            >
-              <Dashboard />
-            </WorkspaceLayout>
+            <UserRoute>
+              <WorkspaceLayout
+                modelName="工作台"
+                modelIcon="✨"
+                modelDescription="一站式 AI 创作平台，聚合 500+ 全球顶尖大模型。"
+              >
+                <Dashboard />
+              </WorkspaceLayout>
+            </UserRoute>
           }
         />
 
@@ -566,6 +581,16 @@ export default function App() {
             <AdminRoute>
               <AdminLayout>
                 <AdminSystemConfigPage />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/pricing"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <AdminPricingPage />
               </AdminLayout>
             </AdminRoute>
           }

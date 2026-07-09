@@ -43,7 +43,37 @@ export async function runBillableTask<T>({
   }
 }
 
-export function getEstimatedCost(category: string, quantity = 1, duration = 1) {
+/**
+ * 调用后端定价 API 获取准确的预估消耗积分
+ */
+export async function fetchEstimatedCost(
+  model: string,
+  category: string,
+  inputTokens?: number,
+): Promise<number> {
+  try {
+    const params = new URLSearchParams({ model, category });
+    if (inputTokens !== undefined) {
+      params.set('input_tokens', String(inputTokens));
+    }
+    const data = await api.get<{ estimated_cost: number }>(
+      `/pricing/estimate?${params.toString()}`,
+    );
+    return data.estimated_cost;
+  } catch {
+    // 接口不可用时回退到本地估算
+    return getEstimatedCost(category);
+  }
+}
+
+/**
+ * 本地估算消耗积分（fallback，当定价 API 不可用时使用）
+ */
+export function getEstimatedCost(
+  category: string,
+  quantity = 1,
+  duration = 1,
+): number {
   switch (category) {
     case 'chat':
       return Math.max(1, quantity);

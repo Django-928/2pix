@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAdminStore } from '@/store/useAdminStore';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 const menuItems = [
@@ -70,6 +71,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, isLogin, logout, hasPermission, initFromToken } = useAdminStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
 
   useEffect(() => {
     if (!user && isLogin) {
@@ -84,17 +86,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const handleChangePassword = async () => {
     if (!oldPwd || !newPwd) return;
-    if (newPwd.length < 6) { alert('新密码长度不能少于6位'); return; }
+    if (newPwd.length < 6) { toast.warning('新密码长度不能少于6位'); return; }
     setPwdLoading(true);
     try {
       await api.post('/auth/change-password', { oldPassword: oldPwd, newPassword: newPwd });
-      alert('密码修改成功');
+      toast.success('密码修改成功');
       setShowPwdModal(false);
       setOldPwd('');
       setNewPwd('');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } } };
-      alert(e?.response?.data?.error || '修改失败');
+      toast.error(e?.response?.data?.error || '修改失败');
     } finally {
       setPwdLoading(false);
     }

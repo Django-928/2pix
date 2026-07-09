@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface Permission {
@@ -32,6 +33,7 @@ interface Role {
 }
 
 export default function AdminRolesPage() {
+  const toast = useToast();
   const [roles, setRoles] = useState<Role[]>([]);
   const [allPermissions, setAllPermissions] = useState<Record<string, Permission[]>>({});
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ export default function AdminRolesPage() {
       setShowCreateModal(false);
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '创建失败');
+      toast.error(err instanceof Error ? err.message : '创建失败');
     } finally {
       setSubmitting(false);
     }
@@ -105,7 +107,7 @@ export default function AdminRolesPage() {
       setShowEditModal(false);
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '更新失败');
+      toast.error(err instanceof Error ? err.message : '更新失败');
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +119,7 @@ export default function AdminRolesPage() {
       await api.delete(`/admin/roles/${role.id}`);
       loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '删除失败');
+      toast.error(err instanceof Error ? err.message : '删除失败');
     }
   };
 

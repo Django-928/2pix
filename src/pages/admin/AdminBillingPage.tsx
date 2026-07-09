@@ -13,6 +13,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface Transaction {
@@ -42,6 +43,7 @@ interface TransactionListData {
 }
 
 export default function AdminBillingPage() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'transactions' | 'usage'>('transactions');
   const [transactions, setTransactions] = useState<TransactionListData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,7 +104,7 @@ export default function AdminBillingPage() {
       setRechargeForm({ user_id: '', amount: '', description: '' });
       loadTransactions();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '充值失败');
+      toast.error(err instanceof Error ? err.message : '充值失败');
     } finally {
       setSubmitting(false);
     }

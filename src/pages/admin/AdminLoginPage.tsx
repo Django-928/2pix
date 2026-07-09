@@ -167,10 +167,12 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          <div className="mt-6 p-4 bg-purple-500/5 rounded-xl border border-purple-500/10">
-            <p className="text-xs text-dark-500 mb-2">演示账号</p>
-            <p className="text-sm text-dark-400">用户名: <span className="text-purple-400">admin</span> / 密码: <span className="text-purple-400">admin123456</span></p>
-          </div>
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="mt-6 p-4 bg-purple-500/5 rounded-xl border border-purple-500/10">
+              <p className="text-xs text-dark-500 mb-2">演示账号</p>
+              <p className="text-sm text-dark-400">用户名: <span className="text-purple-400">admin</span> / 密码: <span className="text-purple-400">admin123456</span></p>
+            </div>
+          )}
         </div>
       </div>
     </div>

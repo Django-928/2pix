@@ -3212,13 +3212,14 @@ html[data-theme='light'] .video-param-select select {
   color: #fff;
 }
 
-@keyframes shiny {
-  0% { background-position: 200% center; }
-  100% { background-position: -200% center; }
-}
 
-.animate-shiny {
-  animation: shiny 6s linear infinite;
+/* Aura page background gentle breathing animation */
+@keyframes aura-bg-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.85; }
+}
+.aura-bg-animated {
+  animation: aura-bg-breathe 20s ease-in-out infinite;
 }
 
 .liquid-glass {

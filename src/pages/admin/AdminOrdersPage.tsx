@@ -14,6 +14,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface AdminOrder {
@@ -112,6 +113,7 @@ function getCallbackClass(status: string) {
 }
 
 export default function AdminOrdersPage() {
+  const toast = useToast();
   const [data, setData] = useState<OrderListData | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -169,7 +171,7 @@ export default function AdminOrdersPage() {
       await api.post(`/admin/billing/orders/${detail.order.order_no}/close`, { reason: closeReason });
       await Promise.all([loadData(), openDetail(detail.order.order_no)]);
     } catch (error) {
-      alert(error instanceof Error ? error.message : '关闭订单失败');
+      toast.error(error instanceof Error ? error.message : '关闭订单失败');
     } finally {
       setActionLoading(false);
     }
@@ -179,11 +181,11 @@ export default function AdminOrdersPage() {
     if (!detail) return;
     const amount = Number(refundAmount);
     if (!amount || amount <= 0 || amount > detail.order.amount) {
-      alert('退款金额必须在 0 到订单金额之间');
+      toast.warning('退款金额必须在 0 到订单金额之间');
       return;
     }
     if (!refundReason.trim()) {
-      alert('请输入退款原因');
+      toast.warning('请输入退款原因');
       return;
     }
     if (!confirm(`确定为订单 "${detail.order.order_no}" 退款 ¥${amount.toFixed(2)} 吗？\n原因：${refundReason}`)) return;
@@ -197,7 +199,7 @@ export default function AdminOrdersPage() {
       setRefundReason('');
       await Promise.all([loadData(), openDetail(detail.order.order_no)]);
     } catch (error) {
-      alert(error instanceof Error ? error.message : '退款失败');
+      toast.error(error instanceof Error ? error.message : '退款失败');
     } finally {
       setActionLoading(false);
     }

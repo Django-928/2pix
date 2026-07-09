@@ -10,6 +10,7 @@ import {
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface TokenPrice {
@@ -26,6 +27,7 @@ interface TokenPrice {
 }
 
 export default function AdminPricesPage() {
+  const toast = useToast();
   const [prices, setPrices] = useState<TokenPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -76,7 +78,7 @@ export default function AdminPricesPage() {
       setShowEditModal(false);
       loadPrices();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '更新失败');
+      toast.error(err instanceof Error ? err.message : '更新失败');
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +91,7 @@ export default function AdminPricesPage() {
       });
       loadPrices();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '操作失败');
+      toast.error(err instanceof Error ? err.message : '操作失败');
     }
   };
 

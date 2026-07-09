@@ -88,7 +88,6 @@ const gradientStyle = (theme: Theme): React.CSSProperties => ({
   backgroundClip: 'text',
   color: 'transparent',
   WebkitTextFillColor: 'transparent',
-  filter: 'url(#c3-noise)',
 });
 
 /* ---------- SEO ---------- */
@@ -487,29 +486,33 @@ function Background() {
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none">
-      {/* Fallback gradient shown while video loads or on error */}
-      <div
-        className="absolute inset-0 transition-opacity duration-700"
-        style={{
-          background: isLight
-            ? 'radial-gradient(circle at 50% 0%, #eef7ff 0%, #f8f9fa 60%, #e8eaed 100%)'
-            : 'radial-gradient(circle at 50% 0%, #0b1d3a 0%, #05080f 60%, #000000 100%)',
-          opacity: videoError ? 1 : 0.6,
-        }}
-      />
-
+      {/* Video background - blue fluid ribbon */}
       {!videoError && (
         <video
+          className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           loop
           muted
           playsInline
           onError={() => setVideoError(true)}
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          src="/videos/bg.mp4"
-        />
+        >
+          <source src="/videos/bg.mp4" type="video/mp4" />
+        </video>
       )}
 
+      {/* Fallback: animated gradient background when video unavailable */}
+      <div
+        className={`absolute inset-0 ${videoError ? 'aura-bg-animated' : ''}`}
+        style={{
+          background: videoError
+            ? isLight
+              ? 'radial-gradient(ellipse at 50% 0%, #eef7ff 0%, #f8f9fa 60%, #e8eaed 100%)'
+              : 'radial-gradient(ellipse at 50% 0%, #0b1d3a 0%, #05080f 60%, #000000 100%)'
+            : 'transparent',
+        }}
+      />
+
+      {/* Dark overlay to ensure text readability */}
       <div
         className="absolute inset-0 transition-all duration-500"
         style={{ background: overlay }}
@@ -567,15 +570,7 @@ export default function AuraPage() {
         data-aura-theme={theme}
         className="relative min-h-screen overflow-x-hidden bg-[var(--aura-bg)] text-[var(--aura-text)] selection:bg-brand/30"
       >
-        {/* Root SVG noise filter */}
-        <svg className="absolute w-0 h-0" aria-hidden="true">
-          <filter id="c3-noise">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
-            <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0" />
-            <feComposite in2="SourceGraphic" operator="in" result="noise" />
-            <feBlend in="SourceGraphic" in2="noise" mode="multiply" />
-          </filter>
-        </svg>
+        {/* Root SVG noise filter - must have non-zero dimensions for cross-browser filter resolution */}
 
         <Background />
 

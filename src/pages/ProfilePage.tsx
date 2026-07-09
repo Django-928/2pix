@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '@/store/useStore';
+import { useToast } from '@/components/ui/Toast';
 import useSettingsStore from '@/store/useSettingsStore';
 import useAuthStore from '@/store/useAuthStore';
 import useAccountStore from '@/store/useAccountStore';
@@ -167,6 +168,7 @@ interface AccountStats {
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
   const [workFilter, setWorkFilter] = useState<WorkFilter>('all');
+  const toast = useToast();
   const [copied, setCopied] = useState('');
   const [rechargeLoading, setRechargeLoading] = useState('');
   const [rechargeNotice, setRechargeNotice] = useState('');
@@ -193,11 +195,11 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 500 * 1024) {
-      alert('图片大小不能超过 500KB');
+      toast.warning('图片大小不能超过 500KB');
       return;
     }
     if (!['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'].includes(file.type)) {
-      alert('仅支持 PNG、JPG、GIF、WebP 格式');
+      toast.warning('仅支持 PNG、JPG、GIF、WebP 格式');
       return;
     }
     setAvatarUploading(true);
@@ -208,7 +210,7 @@ export default function ProfilePage() {
           const result = await api.post<{ avatar: string }>('/account/avatar', { avatar: reader.result });
           refreshMe();
         } catch (err) {
-          alert(err instanceof Error ? err.message : '头像上传失败');
+          toast.error(err instanceof Error ? err.message : '头像上传失败');
         } finally {
           setAvatarUploading(false);
         }
@@ -1233,7 +1235,10 @@ export default function ProfilePage() {
                     <span className="flex items-center gap-3 text-sm text-[#eee]">{theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />} 深浅模式</span>
                     <span className="text-xs text-[#777]">{theme === 'dark' ? '深色' : '浅色'}</span>
                   </button>
-                  <button onClick={toggleLanguage} className="w-full rounded-2xl bg-[#171717] border border-white/[0.08] px-4 py-3 flex items-center justify-between hover:bg-white/[0.04]">
+                  <button onClick={() => {
+                    toggleLanguage();
+                    toast.success(language === 'zh' ? 'Switched to English' : '已切换为中文');
+                  }} className="w-full rounded-2xl bg-[#171717] border border-white/[0.08] px-4 py-3 flex items-center justify-between hover:bg-white/[0.04]">
                     <span className="flex items-center gap-3 text-sm text-[#eee]"><Languages className="w-4 h-4" /> 语言</span>
                     <span className="text-xs text-[#777]">{language === 'zh' ? '中文' : 'English'}</span>
                   </button>

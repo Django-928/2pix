@@ -30,6 +30,7 @@ import {
 import Sidebar from './Sidebar';
 import { useStore } from '@/store/useStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { useToast } from '@/components/ui/Toast';
 
 export interface ParamOption {
   id: string;
@@ -88,6 +89,7 @@ export default function WorkspaceLayout({
     checkIn,
     modelApiConfigs,
   } = useSettingsStore();
+  const toast = useToast();
   const [paramValues, setParamValues] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     params.forEach((p) => {
@@ -95,11 +97,6 @@ export default function WorkspaceLayout({
     });
     return initial;
   });
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.dataset.lang = language;
-  }, [theme, language]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -724,7 +721,10 @@ Authorization: Bearer <API_KEY>
                     <span className="settings-item-desc">{uiText.themeDesc}</span>
                   </div>
                 </button>
-                <button type="button" className="settings-item" onClick={toggleLanguage}>
+                <button type="button" className="settings-item" onClick={() => {
+                  toggleLanguage();
+                  toast.success(language === 'zh' ? 'Switched to English' : '已切换为中文');
+                }}>
                   <div className="settings-item-icon bg-violet-500/20 text-violet-400">
                     <Languages size={20} />
                   </div>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Activity, CheckCircle, Eye, FileText, Image, Music, RefreshCw, Search, Trash2, Video, XCircle, XOctagon } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface AdminWork {
@@ -79,6 +80,7 @@ const REVIEW_ACTIONS: Array<{ value: 'approved' | 'violated' | 'taken_down'; lab
 ];
 
 export default function AdminWorksPage() {
+  const toast = useToast();
   const [data, setData] = useState<WorkListData | null>(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -136,23 +138,23 @@ export default function AdminWorksPage() {
     if (!reason?.trim()) return;
     try {
       await api.delete(`/admin/works/${work.id}`);
-      alert('作品已删除');
+      toast.success('作品已删除');
       setDetail(null);
       await loadWorks();
     } catch (error) {
-      alert(error instanceof Error ? error.message : '删除失败');
+      toast.error(error instanceof Error ? error.message : '删除失败');
     }
   };
 
   const reviewWork = async (workId: string, newStatus: 'approved' | 'violated' | 'taken_down', reason: string) => {
     try {
       await api.put(`/admin/works/${workId}/review`, { reviewStatus: newStatus, reviewReason: reason });
-      alert(`作品已标记为「${reviewStatusLabels[newStatus]}」`);
+      toast.success(`作品已标记为「${reviewStatusLabels[newStatus]}」`);
       setReviewModal(null);
       setDetail(null);
       await loadWorks();
     } catch (error) {
-      alert(error instanceof Error ? error.message : '审核失败');
+      toast.error(error instanceof Error ? error.message : '审核失败');
     }
   };
 
@@ -163,12 +165,12 @@ export default function AdminWorksPage() {
         reviewStatus: action,
         reviewReason: reason,
       });
-      alert(`批量审核完成，已标记为「${reviewStatusLabels[action]}」`);
+      toast.success(`批量审核完成，已标记为「${reviewStatusLabels[action]}」`);
       setBatchReviewModal(null);
       setSelected(new Set());
       await loadWorks();
     } catch (error) {
-      alert(error instanceof Error ? error.message : '批量审核失败');
+      toast.error(error instanceof Error ? error.message : '批量审核失败');
     }
   };
 

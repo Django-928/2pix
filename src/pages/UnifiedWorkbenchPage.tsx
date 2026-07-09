@@ -34,6 +34,7 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import useAuthStore from '@/store/useAuthStore';
 import useAccountStore from '@/store/useAccountStore';
 import api from '@/utils/api';
+import { useToast } from '@/components/ui/Toast';
 import ChatWorkbench from '@/components/workbench/ChatWorkbench';
 
 /* ─────────────── 主页面 ─────────────── */
@@ -214,12 +215,13 @@ export default function UnifiedWorkbenchPage() {
   const theme = useSettingsStore((s) => s.theme);
   const language = useSettingsStore((s) => s.language);
   const toggleTheme = useSettingsStore((s) => s.toggleTheme);
-  const toggleLanguage = useSettingsStore((s) => s.toggleLanguage);
+  const toggleLanguageFn = useSettingsStore((s) => s.toggleLanguage);
   const authUser = useAuthStore((s) => s.user);
   const refreshMe = useAuthStore((s) => s.refreshMe);
   const balance = useAccountStore((s) => s.balance);
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
   const projects = useStore((s) => s.projects);
+  const toast = useToast();
   const displayName = authUser?.nickname || authUser?.username || '用户';
   const avatarText = displayName.slice(0, 1).toUpperCase();
   const displayBalance = authUser?.balance ?? balance;
@@ -375,7 +377,10 @@ export default function UnifiedWorkbenchPage() {
 
           <button
             type="button"
-            onClick={toggleLanguage}
+            onClick={() => {
+              toggleLanguageFn();
+              toast.success(language === 'zh' ? 'Switched to English' : '已切换为中文');
+            }}
             className="w-8 h-8 rounded-full border border-white/10 bg-white/[0.04] flex items-center justify-center text-white/70 hover:bg-white/10 transition"
             title={language === 'zh' ? 'Switch to English' : '切换到中文'}
           >
@@ -547,7 +552,9 @@ export default function UnifiedWorkbenchPage() {
         <main className="flex-1 min-w-0 flex flex-col relative">
           {/* 上 2/3 结果/画布区 */}
           <div
-            className="flex-[2] min-h-0 flex flex-col items-center justify-center p-8 relative overflow-hidden"
+            className={`min-h-0 flex flex-col items-center relative overflow-hidden ${
+              activeModel.category === 'chat' ? 'flex-1' : 'flex-[2] justify-center p-8'
+            }`}
             style={{
               background: 'radial-gradient(circle at center, rgba(0,210,255,0.03) 0%, transparent 60%)',
             }}
@@ -572,12 +579,8 @@ export default function UnifiedWorkbenchPage() {
             )}
           </div>
 
-          {/* 下 1/3 输入区 */}
-          {activeModel.category === 'chat' ? (
-            <div className="flex-1 min-h-0 flex items-center justify-center text-sm text-white/40">
-              当前为对话模型，请在上方聊天区域输入内容
-            </div>
-          ) : (
+          {/* 下 1/3 输入区（聊天模式不需要，输入框已内置在 ChatWorkbench 中） */}
+          {activeModel.category !== 'chat' && (
             <div
               className="flex-1 min-h-0 flex flex-col justify-end p-6 pb-8 z-10"
               style={{

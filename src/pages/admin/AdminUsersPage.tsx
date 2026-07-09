@@ -11,6 +11,7 @@ import {
   X,
   RefreshCw,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface User {
@@ -100,6 +101,7 @@ interface UserDetailData {
 }
 
 export default function AdminUsersPage() {
+  const toast = useToast();
   const [users, setUsers] = useState<UserListData | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -192,7 +194,7 @@ export default function AdminUsersPage() {
       setShowCreateModal(false);
       loadUsers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '创建失败');
+      toast.error(err instanceof Error ? err.message : '创建失败');
     } finally {
       setSubmitting(false);
     }
@@ -218,7 +220,7 @@ export default function AdminUsersPage() {
       setShowEditModal(false);
       loadUsers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '更新失败');
+      toast.error(err instanceof Error ? err.message : '更新失败');
     } finally {
       setSubmitting(false);
     }
@@ -230,7 +232,7 @@ export default function AdminUsersPage() {
       await api.delete(`/admin/users/${user.id}`);
       loadUsers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '删除失败');
+      toast.error(err instanceof Error ? err.message : '删除失败');
     }
   };
 
@@ -247,7 +249,7 @@ export default function AdminUsersPage() {
         reloadDetail().catch(() => undefined);
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : '操作失败');
+      toast.error(err instanceof Error ? err.message : '操作失败');
     }
   };
 
@@ -264,7 +266,7 @@ export default function AdminUsersPage() {
       const data = await api.get<UserDetailData>(`/admin/users/${user.id}`);
       setDetail(data);
     } catch (err) {
-      alert(err instanceof Error ? err.message : '加载用户详情失败');
+      toast.error(err instanceof Error ? err.message : '加载用户详情失败');
       setShowDetailModal(false);
     } finally {
       setDetailLoading(false);
@@ -292,7 +294,7 @@ export default function AdminUsersPage() {
         reloadDetail().catch(() => undefined);
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : '调账失败');
+      toast.error(err instanceof Error ? err.message : '调账失败');
     } finally {
       setSubmitting(false);
     }
