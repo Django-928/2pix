@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   Plus,
@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
+  PlugZap,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
@@ -24,6 +25,28 @@ interface Model {
   is_hot: number;
   created_at: string;
   updated_at: string;
+}
+
+/** Provider model mapping from admin_configs */
+interface ProviderModel {
+  localModel: string;
+  upstreamModel: string;
+  category: string;
+  enabled: boolean;
+}
+
+interface ProviderItem {
+  id: string;
+  name: string;
+  enabled: boolean;
+  baseUrl: string;
+  apiKey: string;
+  models: ProviderModel[];
+}
+
+interface ProviderConfig {
+  activeProvider: string;
+  providers: ProviderItem[];
 }
 
 const CATEGORIES = [
@@ -87,9 +110,11 @@ export default function AdminModelsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<Model | null>(null);
   const [formData, setFormData] = useState<ModelFormData>({ ...emptyFormData });
   const [submitting, setSubmitting] = useState(false);
+  const [providerConfig, setProviderConfig] = useState<ProviderConfig | null>(null);
 
   useEffect(() => {
     loadModels();
+    loadProviderConfig();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryTab]);
 
@@ -107,6 +132,30 @@ export default function AdminModelsPage() {
       setLoading(false);
     }
   };
+
+  const loadProviderConfig = async () => {
+    try {
+      const data = await api.get<{ value: ProviderConfig }>('/admin/configs/providers');
+      setProviderConfig(data.value);
+    } catch {
+      // Provider config not available - silently ignore
+    }
+  };
+
+  /** Build a lookup: localModel -> { providerName, upstreamModel } for enabled providers */
+  const providerMapping = useMemo(() => {
+    const map: Record<string, { providerName: string; upstreamModel: string }[]> = {};
+    if (!providerConfig) return map;
+    for (const provider of providerConfig.providers) {
+      if (!provider.enabled) continue;
+      for (const m of provider.models) {
+        if (!m.enabled) continue;
+        if (!map[m.localModel]) map[m.localModel] = [];
+        map[m.localModel].push({ providerName: provider.name || provider.id, upstreamModel: m.upstreamModel });
+      }
+    }
+    return map;
+  }, [providerConfig]);
 
   const handleCreate = () => {
     setFormData({ ...emptyFormData });
@@ -248,7 +297,7 @@ export default function AdminModelsPage() {
             />
           </div>
           <button
-            onClick={loadModels}
+            onClick={() => { loadModels(); loadProviderConfig(); }}
             className="p-2.5 glass rounded-xl text-dark-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -266,6 +315,7 @@ export default function AdminModelsPage() {
                 <th className="pb-3 px-5 font-medium">描述</th>
                 <th className="pb-3 px-5 font-medium">分类</th>
                 <th className="pb-3 px-5 font-medium">状态</th>
+                <th className="pb-3 px-5 font-medium">Provider</th>
                 <th className="pb-3 px-5 font-medium">排序</th>
                 <th className="pb-3 px-5 font-medium text-right">操作</th>
               </tr>
@@ -273,7 +323,7 @@ export default function AdminModelsPage() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-dark-500">
+                  <td colSpan={9} className="py-12 text-center text-dark-500">
                     <div className="flex items-center justify-center gap-2">
                       <RefreshCw size={18} className="animate-spin" />
                       加载中...
@@ -283,85 +333,113 @@ export default function AdminModelsPage() {
               )}
               {!loading && filteredModels.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-dark-500">
+                  <td colSpan={9} className="py-12 text-center text-dark-500">
                     暂无模型数据
                   </td>
                 </tr>
               )}
-              {!loading && filteredModels.map((model) => (
-                <tr key={model.id} className="border-b border-purple-500/5 hover:bg-purple-500/5">
-                  <td className="py-4 px-5">
-                    <span className="text-2xl">{model.icon || '✨'}</span>
-                  </td>
-                  <td className="py-4 px-5">
-                    <span className="font-mono text-sm text-dark-300">{model.id}</span>
-                  </td>
-                  <td className="py-4 px-5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-dark-100">{model.name}</span>
-                      {model.is_new ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                          NEW
+              {!loading && filteredModels.map((model) => {
+                const mappings = providerMapping[model.id];
+                const hasMapping = mappings && mappings.length > 0;
+                return (
+                  <tr key={model.id} className="border-b border-purple-500/5 hover:bg-purple-500/5">
+                    <td className="py-4 px-5">
+                      <span className="text-2xl">{model.icon || '✨'}</span>
+                    </td>
+                    <td className="py-4 px-5">
+                      <span className="font-mono text-sm text-dark-300">{model.id}</span>
+                    </td>
+                    <td className="py-4 px-5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-dark-100">{model.name}</span>
+                        {model.is_new ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            NEW
+                          </span>
+                        ) : null}
+                        {model.is_hot ? (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
+                            HOT
+                          </span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="py-4 px-5">
+                      <span className="text-sm text-dark-400 line-clamp-1 max-w-[200px] block">
+                        {model.description || '-'}
+                      </span>
+                    </td>
+                    <td className="py-4 px-5">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${CATEGORY_COLORS[model.category] || 'bg-dark-500/10 text-dark-400'}`}>
+                        {CATEGORY_LABELS[model.category] || model.category}
+                      </span>
+                    </td>
+                    <td className="py-4 px-5">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
+                          model.status === 'active'
+                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                            : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                        }`}
+                      >
+                        {STATUS_LABELS[model.status] || model.status}
+                      </span>
+                    </td>
+                    {/* Provider 接入状态 */}
+                    <td className="py-4 px-5">
+                      {hasMapping ? (
+                        <div className="flex flex-col gap-1">
+                          {mappings.slice(0, 2).map((m, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              title={`${m.providerName}: ${model.id} -> ${m.upstreamModel}`}
+                            >
+                              <PlugZap size={10} />
+                              {m.providerName}
+                            </span>
+                          ))}
+                          {mappings.length > 2 && (
+                            <span className="text-[10px] text-dark-500">+{mappings.length - 2}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border bg-amber-500/10 text-amber-400 border-amber-500/20">
+                          未接入
                         </span>
-                      ) : null}
-                      {model.is_hot ? (
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/20">
-                          HOT
-                        </span>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="py-4 px-5">
-                    <span className="text-sm text-dark-400 line-clamp-1 max-w-[200px] block">
-                      {model.description || '-'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-5">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${CATEGORY_COLORS[model.category] || 'bg-dark-500/10 text-dark-400'}`}>
-                      {CATEGORY_LABELS[model.category] || model.category}
-                    </span>
-                  </td>
-                  <td className="py-4 px-5">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
-                        model.status === 'active'
-                          ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                          : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                      }`}
-                    >
-                      {STATUS_LABELS[model.status] || model.status}
-                    </span>
-                  </td>
-                  <td className="py-4 px-5">
-                    <span className="text-sm text-dark-300">{model.sort_order ?? 0}</span>
-                  </td>
-                  <td className="py-4 px-5">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handleEdit(model)}
-                        className="p-2 rounded-lg text-dark-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
-                        title="编辑"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(model)}
-                        className="p-2 rounded-lg text-dark-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-colors"
-                        title={model.status === 'active' ? '下线' : '上线'}
-                      >
-                        {model.status === 'active' ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(model)}
-                        className="p-2 rounded-lg text-dark-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                        title="删除"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      )}
+                    </td>
+                    <td className="py-4 px-5">
+                      <span className="text-sm text-dark-300">{model.sort_order ?? 0}</span>
+                    </td>
+                    <td className="py-4 px-5">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEdit(model)}
+                          className="p-2 rounded-lg text-dark-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
+                          title="编辑"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(model)}
+                          className="p-2 rounded-lg text-dark-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+                          title={model.status === 'active' ? '下线' : '上线'}
+                        >
+                          {model.status === 'active' ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(model)}
+                          className="p-2 rounded-lg text-dark-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          title="删除"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

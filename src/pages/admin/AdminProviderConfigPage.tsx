@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Plus, RefreshCw, Save, Server, Trash2, Zap, Download, CheckCircle2, Wifi, Loader2 } from 'lucide-react';
+import { Plus, RefreshCw, Save, Server, Trash2, Zap, Download, CheckCircle2, Wifi, Loader2, Info, AlertTriangle, ArrowRight } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface ProviderModel {
@@ -38,7 +39,22 @@ const emptyProvider: ProviderItem = {
   models: [],
 };
 
+/** Compute the display status for a provider card */
+function getProviderStatus(provider: ProviderItem): 'configured' | 'incomplete' | 'disabled' {
+  if (!provider.enabled) return 'disabled';
+  if (provider.apiKey && provider.baseUrl) return 'configured';
+  return 'incomplete';
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  chat: '聊天',
+  image: '图像',
+  video: '视频',
+  audio: '音频',
+};
+
 export default function AdminProviderConfigPage() {
+  const toast = useToast();
   const [config, setConfig] = useState<ProviderConfig>({ activeProvider: 'kie.ai', providers: [] });
   const [selectedId, setSelectedId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -57,13 +73,15 @@ export default function AdminProviderConfigPage() {
       const data = await api.get<{ value: ProviderConfig }>('/admin/configs/providers');
       setConfig(data.value);
       setSelectedId(data.value.providers[0]?.id || '');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '加载配置失败');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadConfig().catch((error) => setNotice(error instanceof Error ? error.message : '加载配置失败'));
+    loadConfig();
   }, []);
 
   const updateProvider = (patch: Partial<ProviderItem>) => {
@@ -122,9 +140,9 @@ export default function AdminProviderConfigPage() {
     setNotice('');
     try {
       await api.put('/admin/configs/providers', { value: config });
-      setNotice('聚合平台配置已保存');
+      toast.success('聚合平台配置已保存');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : '保存失败');
+      toast.error(error instanceof Error ? error.message : '保存失败');
     } finally {
       setSaving(false);
     }
@@ -132,7 +150,7 @@ export default function AdminProviderConfigPage() {
 
   const syncModels = async () => {
     if (!selectedProvider.id || !selectedProvider.baseUrl || !selectedProvider.apiKey) {
-      setNotice('请先填写 Base URL 和 API Key，再同步模型');
+      toast.warning('请先填写 Base URL 和 API Key，再同步模型');
       return;
     }
     setSyncing(true);
@@ -144,11 +162,11 @@ export default function AdminProviderConfigPage() {
         { providerId: selectedProvider.id },
       );
       setSyncResult({ total: data.data.total, added: data.data.added, existing: data.data.existing });
-      setNotice(`同步成功：共 ${data.data.total} 个模型，新增 ${data.data.added} 个，已存在 ${data.data.existing} 个`);
+      toast.success(`同步成功：共 ${data.data.total} 个模型，新增 ${data.data.added} 个，已存在 ${data.data.existing} 个`);
       // 重新加载配置以获取同步后的模型列表
       await loadConfig();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : '同步失败');
+      toast.error(error instanceof Error ? error.message : '同步失败');
     } finally {
       setSyncing(false);
     }
@@ -166,9 +184,11 @@ export default function AdminProviderConfigPage() {
         { providerId: selectedProvider.id },
       );
       setConnectionStatus((prev) => ({ ...prev, [selectedProvider.id]: { success: true, modelCount: data.modelCount, latency: data.latency } }));
+      toast.success(`连接成功，延迟 ${data.latency}ms，${data.modelCount} 个模型可用`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : '测试连接失败';
       setConnectionStatus((prev) => ({ ...prev, [selectedProvider.id]: { success: false, error: msg } }));
+      toast.error(msg);
     } finally {
       setTesting(false);
     }
@@ -177,8 +197,27 @@ export default function AdminProviderConfigPage() {
   const inputClass = 'w-full rounded-xl border border-purple-500/10 bg-dark-900/50 px-3 py-2.5 text-sm text-dark-200 outline-none transition focus:border-purple-500/30';
   const labelClass = 'space-y-2 text-sm text-dark-300';
 
+  const statusConfig = {
+    configured: { label: '已配置', bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', dot: 'bg-emerald-400' },
+    incomplete: { label: '未配置', bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', dot: 'bg-amber-400' },
+    disabled: { label: '已禁用', bg: 'bg-dark-700/50', text: 'text-dark-500', border: 'border-dark-600/50', dot: 'bg-dark-500' },
+  };
+
   return (
     <div className="space-y-6">
+      {/* ========== 醒目的提示横幅 ========== */}
+      <div className="flex items-start gap-3 rounded-2xl border border-purple-500/30 bg-purple-500/10 px-5 py-4">
+        <Info size={20} className="mt-0.5 flex-shrink-0 text-purple-400" />
+        <div>
+          <p className="text-sm font-semibold text-purple-200">
+            这是唯一真正生效的 API 配置入口
+          </p>
+          <p className="mt-1 text-xs text-purple-300/80">
+            此页面的配置将保存到服务端 admin_configs 表，直接控制实际的 API 调用、模型映射和成本倍率。其他页面的配置仅作展示用途，不会影响线上 API 行为。
+          </p>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-purple-400">PROVIDER CENTER</p>
@@ -220,8 +259,15 @@ export default function AdminProviderConfigPage() {
           </div>
         </div>
         <div className="glass rounded-2xl p-5">
-          <p className="text-2xl font-bold text-dark-100">{config.providers.filter((item) => item.enabled).length}</p>
-          <p className="text-xs text-dark-500">已启用平台</p>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
+              <CheckCircle2 size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-dark-100">{config.providers.filter((p) => getProviderStatus(p) === 'configured').length}</p>
+              <p className="text-xs text-dark-500">已配置平台</p>
+            </div>
+          </div>
         </div>
         <div className="glass rounded-2xl p-5">
           <div className="flex items-center gap-3">
@@ -243,6 +289,8 @@ export default function AdminProviderConfigPage() {
           ) : (
             config.providers.map((provider) => {
               const status = connectionStatus[provider.id];
+              const pStatus = getProviderStatus(provider);
+              const sc = statusConfig[pStatus];
               return (
                 <button
                   key={provider.id}
@@ -252,7 +300,7 @@ export default function AdminProviderConfigPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {/* 状态指示灯 */}
-                      <span className={`inline-block h-2 w-2 rounded-full ${provider.enabled ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                      <span className={`inline-block h-2 w-2 rounded-full ${sc.dot}`} />
                       <span className="text-sm font-medium">{provider.name || provider.id}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -260,8 +308,9 @@ export default function AdminProviderConfigPage() {
                       {status && (
                         <span className={`inline-block h-1.5 w-1.5 rounded-full ${status.success ? 'bg-cyan-400' : 'bg-orange-400'}`} title={status.success ? '连接测试通过' : '连接测试失败'} />
                       )}
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] ${provider.enabled ? 'bg-emerald-500/10 text-emerald-300' : 'bg-dark-700 text-dark-500'}`}>
-                        {provider.enabled ? '启用' : '停用'}
+                      {/* 状态标签 */}
+                      <span className={`rounded border px-1.5 py-0.5 text-[10px] ${sc.bg} ${sc.text} ${sc.border}`}>
+                        {sc.label}
                       </span>
                     </div>
                   </div>
@@ -292,10 +341,10 @@ export default function AdminProviderConfigPage() {
                       onClick={testConnection}
                       disabled={testing || !selectedProvider.baseUrl || !selectedProvider.apiKey}
                       className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 px-3 py-2.5 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/10 disabled:opacity-40"
-                      title="测试连接"
+                      title="一键测试连接"
                     >
                       {testing ? <Loader2 size={16} className="animate-spin" /> : <Wifi size={16} />}
-                      {testing ? '测试中...' : '测试连接'}
+                      一键测试
                     </button>
                   </div>
                 </div>
@@ -307,10 +356,10 @@ export default function AdminProviderConfigPage() {
                       onClick={testConnection}
                       disabled={testing || !selectedProvider.baseUrl || !selectedProvider.apiKey}
                       className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 px-3 py-2.5 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/10 disabled:opacity-40"
-                      title="测试连接"
+                      title="一键测试连接"
                     >
                       {testing ? <Loader2 size={16} className="animate-spin" /> : <Wifi size={16} />}
-                      {testing ? '测试中...' : '测试'}
+                      测试
                     </button>
                   </div>
                 </div>
@@ -357,7 +406,7 @@ export default function AdminProviderConfigPage() {
                     title="从上游 API 自动同步模型列表"
                   >
                     {syncing ? <RefreshCw size={16} className="animate-spin" /> : <Download size={16} />}
-                    {syncing ? '同步中...' : '同步模型'}
+                    同步模型
                   </button>
                   <button onClick={addModel} className="inline-flex items-center gap-2 rounded-xl border border-purple-500/20 px-3 py-2 text-sm text-purple-300 transition hover:bg-purple-500/10">
                     <Plus size={16} />
@@ -377,23 +426,50 @@ export default function AdminProviderConfigPage() {
               )}
 
               <div className="space-y-3">
+                {selectedProvider.models.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-10 text-dark-500">
+                    <Server size={32} className="mb-2 opacity-40" />
+                    <p className="text-sm">暂无模型映射</p>
+                    <p className="mt-1 text-xs">点击"同步模型"从上游自动获取，或手动"添加映射"</p>
+                  </div>
+                )}
                 {selectedProvider.models.map((model, index) => (
-                  <div key={`${model.localModel}-${index}`} className="grid gap-3 rounded-2xl border border-purple-500/10 bg-dark-900/40 p-4 md:grid-cols-[1fr_1fr_130px_80px_40px]">
-                    <input className={inputClass} value={model.localModel} onChange={(e) => updateModel(index, { localModel: e.target.value })} placeholder="本地模型 ID" />
-                    <input className={inputClass} value={model.upstreamModel} onChange={(e) => updateModel(index, { upstreamModel: e.target.value })} placeholder="上游模型 ID" />
-                    <select className={inputClass} value={model.category} onChange={(e) => updateModel(index, { category: e.target.value })}>
-                      <option value="chat">聊天</option>
-                      <option value="image">图像</option>
-                      <option value="video">视频</option>
-                      <option value="audio">音频</option>
-                    </select>
-                    <label className="flex items-center gap-2 text-sm text-dark-300">
-                      <input type="checkbox" checked={model.enabled} onChange={(e) => updateModel(index, { enabled: e.target.checked })} />
-                      启用
-                    </label>
-                    <button onClick={() => removeModel(index)} className="rounded-lg p-2 text-dark-500 transition hover:bg-red-500/10 hover:text-red-300">
-                      <Trash2 size={16} />
-                    </button>
+                  <div key={`${model.localModel}-${index}`} className="rounded-2xl border border-purple-500/10 bg-dark-900/40 p-4">
+                    {/* 映射关系展示 */}
+                    <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+                      <span className="rounded-lg bg-purple-500/15 border border-purple-500/20 px-3 py-1 font-mono text-xs text-purple-300">
+                        {model.localModel}
+                      </span>
+                      <ArrowRight size={14} className="text-dark-500" />
+                      <span className="rounded-lg bg-cyan-500/15 border border-cyan-500/20 px-3 py-1 font-mono text-xs text-cyan-300">
+                        {model.upstreamModel}
+                      </span>
+                      <ArrowRight size={14} className="text-dark-500" />
+                      <span className="rounded-lg bg-emerald-500/10 border border-emerald-500/15 px-3 py-1 text-xs text-emerald-400">
+                        {CATEGORY_LABELS[model.category] || model.category}
+                      </span>
+                      <span className={`ml-auto rounded px-1.5 py-0.5 text-[10px] ${model.enabled ? 'bg-emerald-500/10 text-emerald-300' : 'bg-dark-700 text-dark-500'}`}>
+                        {model.enabled ? '启用' : '停用'}
+                      </span>
+                    </div>
+                    {/* 可编辑字段 */}
+                    <div className="grid gap-3 md:grid-cols-[1fr_1fr_130px_80px_40px]">
+                      <input className={inputClass} value={model.localModel} onChange={(e) => updateModel(index, { localModel: e.target.value })} placeholder="本地模型 ID" />
+                      <input className={inputClass} value={model.upstreamModel} onChange={(e) => updateModel(index, { upstreamModel: e.target.value })} placeholder="上游模型 ID" />
+                      <select className={inputClass} value={model.category} onChange={(e) => updateModel(index, { category: e.target.value })}>
+                        <option value="chat">聊天</option>
+                        <option value="image">图像</option>
+                        <option value="video">视频</option>
+                        <option value="audio">音频</option>
+                      </select>
+                      <label className="flex items-center gap-2 text-sm text-dark-300">
+                        <input type="checkbox" checked={model.enabled} onChange={(e) => updateModel(index, { enabled: e.target.checked })} />
+                        启用
+                      </label>
+                      <button onClick={() => removeModel(index)} className="rounded-lg p-2 text-dark-500 transition hover:bg-red-500/10 hover:text-red-300">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

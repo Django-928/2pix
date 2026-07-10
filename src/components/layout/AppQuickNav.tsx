@@ -6,7 +6,7 @@ const links = [
   { label: '个人中心', href: '/profile', icon: User },
   { label: '漫剧', href: '/manju', icon: Film },
   { label: '代理商', href: '/agent', icon: Crown },
-  { label: '后台配置', href: '/admin/model-configs', icon: Settings },
+  { label: '后台配置', href: '/admin/provider-config', icon: Settings },
 ];
 
 export default function AppQuickNav({ compact = false }: { compact?: boolean }) {

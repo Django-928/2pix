@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Activity,
+  AlertTriangle,
+  ArrowRight,
   Code2,
   Edit2,
   Plus,
@@ -39,6 +42,7 @@ const categoryLabels: Record<ModelApiConfig['category'], string> = {
 };
 
 export default function AdminModelConfigsPage() {
+  const navigate = useNavigate();
   const { modelApiConfigs, upsertModelApiConfig, deleteModelApiConfig } = useSettingsStore();
   const [search, setSearch] = useState('');
   const [editingConfig, setEditingConfig] = useState<ModelApiConfig | null>(null);
@@ -89,6 +93,26 @@ export default function AdminModelConfigsPage() {
 
   return (
     <div className="space-y-6">
+      {/* ========== 废弃警告横幅 ========== */}
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4">
+        <AlertTriangle size={20} className="mt-0.5 flex-shrink-0 text-amber-400" />
+        <div>
+          <p className="text-sm font-semibold text-amber-200">
+            注意：此页面的配置仅保存在浏览器本地，不会影响实际API调用。
+          </p>
+          <p className="mt-1 text-xs text-amber-300/80">
+            如需配置真实API，请前往聚合平台配置页面。
+          </p>
+          <button
+            onClick={() => navigate('/admin/provider-config')}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-xl border border-purple-500/20 bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-300 transition hover:bg-purple-500/20"
+          >
+            前往聚合平台配置
+            <ArrowRight size={12} />
+          </button>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-purple-400">MODEL API CENTER</p>
