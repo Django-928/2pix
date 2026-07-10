@@ -47,8 +47,27 @@ interface ProviderGenerateResult {
 }
 
 const defaultProviderConfig: ProviderConfig = {
-  activeProvider: 'kie.ai',
+  activeProvider: 'rongchuan',
   providers: [
+    {
+      id: 'rongchuan',
+      name: '融川 OneAPI',
+      enabled: true,
+      baseUrl: 'https://rongchuan.ai',
+      apiKey: 'sk-UC4uuRrD3dvUD1xQomxJhwl0t9PMbviwhL3gvTjBTu4RFL9R',
+      timeoutSeconds: 120,
+      costMultiplier: 1,
+      models: [
+        { localModel: 'gpt-5.5', upstreamModel: 'gpt-5.5', category: 'chat', enabled: true },
+        { localModel: 'gpt-5.4', upstreamModel: 'gpt-5.4', category: 'chat', enabled: true },
+        { localModel: 'gpt-5.2', upstreamModel: 'gpt-5.2', category: 'chat', enabled: true },
+        { localModel: 'claude-opus-4', upstreamModel: 'claude-opus-4-7', category: 'chat', enabled: true },
+        { localModel: 'claude-sonnet-4', upstreamModel: 'claude-sonnet-4-6', category: 'chat', enabled: true },
+        { localModel: 'gpt-image-2', upstreamModel: 'gpt-image-2', category: 'image', enabled: true },
+        { localModel: 'gpt-image-1.5', upstreamModel: 'gpt-image-1.5', category: 'image', enabled: true },
+        { localModel: 'gpt-image-1', upstreamModel: 'gpt-image-1', category: 'image', enabled: true },
+      ],
+    },
     {
       id: 'kie-ai',
       name: 'KIE AI',
@@ -79,6 +98,23 @@ function readProviderConfig(): ProviderConfig {
   try {
     const parsed = JSON.parse(row.config_value) as ProviderConfig;
     if (!Array.isArray(parsed.providers)) return defaultProviderConfig;
+
+    // 自动合并：默认配置中存在但数据库中没有的 provider，自动追加
+    const existingIds = new Set(parsed.providers.map((p) => p.id));
+    let merged = false;
+    for (const dp of defaultProviderConfig.providers) {
+      if (!existingIds.has(dp.id)) {
+        parsed.providers.push(dp);
+        merged = true;
+      }
+    }
+    if (merged) {
+      try {
+        db.prepare("UPDATE admin_configs SET config_value = ?, updated_at = datetime('now') WHERE config_key = 'providers'")
+          .run(JSON.stringify(parsed));
+      } catch { /* ignore write failure */ }
+    }
+
     return parsed;
   } catch {
     return defaultProviderConfig;
