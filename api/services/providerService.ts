@@ -294,7 +294,7 @@ async function requestUpstream(input: ProviderGenerateInput, provider: ProviderI
       body = {
         model: upstreamModel,
         messages,
-        stream: false,
+        stream: true,
       };
     } else {
       // 图片/视频/音频生成类使用 /images/generations 或通用 /generate
@@ -318,22 +318,57 @@ async function requestUpstream(input: ProviderGenerateInput, provider: ProviderI
       signal: controller.signal,
     });
 
-    const raw = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const errMsg = (raw as Record<string, unknown>)?.error
-        ? JSON.stringify((raw as Record<string, unknown>).error)
-        : `HTTP ${response.status}`;
+      let errMsg = `HTTP ${response.status}`;
+      try {
+        const errBody = await response.json();
+        errMsg = errBody?.error ? JSON.stringify(errBody.error) : errMsg;
+      } catch { /* ignore parse error */ }
       throw new Error(`上游请求失败：${errMsg}`);
     }
 
-    // OpenAI chat/completions 格式: { choices: [{ message: { content } }] }
-    const openaiContent = extractOpenAIChatContent(raw);
-    const url = extractUrl(raw);
-    const content = openaiContent || extractContent(raw);
+    let raw: unknown;
+    let content: string | undefined;
+    const url = input.category !== 'chat' ? extractUrl(undefined) : undefined;
+
+    if (input.category === 'chat' && response.headers.get('content-type')?.includes('text/event-stream')) {
+      // SSE 流式响应：读取所有 chunk 拼接完整内容
+      const text = await response.text();
+      let fullContent = '';
+      for (const line of text.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') break;
+        try {
+          const parsed = JSON.parse(data);
+          const delta = parsed?.choices?.[0]?.delta?.content;
+          if (typeof delta === 'string') fullContent += delta;
+        } catch { /* skip malformed chunks */ }
+      }
+      content = fullContent;
+      raw = { stream: true, content: fullContent, model: upstreamModel };
+    } else {
+      raw = await response.json().catch(() => ({}));
+      const openaiContent = extractOpenAIChatContent(raw);
+      const rawUrl = extractUrl(raw);
+      content = openaiContent || extractContent(raw);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      void url;
+      return {
+        id: `${input.category}-${Date.now()}`,
+        status: input.category === 'video' ? 'pending' : 'success',
+        providerMode: 'upstream',
+        provider: provider.name,
+        upstreamModel,
+        url: rawUrl,
+        content,
+        raw,
+      };
+    }
 
     return {
       id: `${input.category}-${Date.now()}`,
-      status: input.category === 'video' ? 'pending' : 'success',
+      status: 'success',
       providerMode: 'upstream',
       provider: provider.name,
       upstreamModel,
