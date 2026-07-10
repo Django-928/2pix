@@ -55,11 +55,17 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
       });
     }
     
+    // 提取 KIE 异步任务 ID（如果后端轮询超时）
+    const taskId = result.raw && typeof result.raw === 'object'
+      ? (result.raw as Record<string, unknown>).taskId as string | undefined
+      : undefined;
+
     res.status(200).json({
       success: true,
       id: result.id,
       url: result.url,
       status: 'success' as const,
+      taskId,
       providerMode: result.providerMode,
       provider: result.provider,
       upstreamModel: result.upstreamModel,

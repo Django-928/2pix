@@ -44,6 +44,8 @@ import adminRefundsRoutes from './routes/admin/refunds.js'
 import adminMembershipPlansRoutes from './routes/admin/membershipPlans.js'
 import adminModelsRoutes, { publicRouter as publicModelsRoutes } from './routes/admin/models.js'
 import pricingRoutes from './routes/pricing.js'
+import kieCallbackRoutes from './routes/kieCallback.js'
+import kieTaskRoutes from './routes/kieTasks.js'
 
 dotenv.config()
 
@@ -178,6 +180,8 @@ app.use('/api/admin/membership-plans', adminMembershipPlansRoutes)
 app.use('/api/admin/models', adminModelsRoutes)
 app.use('/api/models', publicModelsRoutes)
 app.use('/api/pricing', pricingRoutes)
+app.use('/api/kie', kieCallbackRoutes)
+app.use('/api/kie', kieTaskRoutes)
 
 // ========== 健康检查 ==========
 app.use(

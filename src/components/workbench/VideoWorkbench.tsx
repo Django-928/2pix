@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Download,
   Play,
@@ -6,12 +6,15 @@ import {
   Upload,
   Film,
   Clock,
+  AlertCircle,
 } from 'lucide-react';
 import type { AIModel } from '@/data/models';
 import { useStore } from '@/store/useStore';
 import { useAccountStore } from '@/store/useAccountStore';
 import api from '@/utils/api';
 import { getEstimatedCost, runBillableTask } from '@/utils/billing';
+import { pollKieTask } from '@/utils/kieTaskPolling';
+import { useToast } from '@/components/ui/Toast';
 import { ModelLogo, DescriptionCard, ParamCapsule, SendButton, CostHint } from './shared';
 
 interface ProviderGenerationResponse {
@@ -19,6 +22,7 @@ interface ProviderGenerationResponse {
   url?: string;
   content?: string;
   status?: string;
+  taskId?: string;
   providerMode?: 'upstream' | 'mock';
   provider?: string;
   upstreamModel?: string;
@@ -221,6 +225,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const addProject = useStore((s) => s.addProject);
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
+  const toast = useToast();
 
   const samplePrompts = [
     '一个宇航员在火星上跳舞，红色沙丘背景，电影级运镜',
@@ -254,11 +259,12 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
     setIsGenerating(true);
     setProgress(0);
 
-    // 模拟进度条
+    // 匀速进度条：从 0 匀速增长到 95%（等待后端响应或轮询完成）
     progressTimerRef.current = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 15;
+        if (prev >= 95) return prev;
+        // 每次增长约 2%，模拟匀速（800ms 间隔 * ~2% ≈ 95% 需要 ~38s）
+        return Math.min(prev + 2, 95);
       });
     }, 800);
 
@@ -280,17 +286,59 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
           setProviderInfo(
             `${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || model.id}`,
           );
-          const videoUrl = result.url || `https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4?t=${Date.now()}`;
-          setGeneratedVideo(videoUrl);
 
-          const newVideoItem: VideoItem = {
-            id: `vid-${Date.now()}`,
-            url: videoUrl,
-            duration,
-            resolution,
-            aspectRatio,
-          };
-          setGeneratedVideos((prev) => [newVideoItem, ...prev]);
+          // 情况1：后端返回了真实 URL → 直接使用
+          if (result.url) {
+            setGeneratedVideo(result.url);
+            const newVideoItem: VideoItem = {
+              id: `vid-${Date.now()}`,
+              url: result.url,
+              duration,
+              resolution,
+              aspectRatio,
+            };
+            setGeneratedVideos((prev) => [newVideoItem, ...prev]);
+          } else if (result.taskId) {
+            // 情况2：后端轮询超时，只有 taskId → 前端自行轮询
+            // 先不停止 progressTimer，让匀速进度条继续运行
+            const pollResult = await pollKieTask(result.taskId, {
+              maxAttempts: 60,
+              intervalMs: 3000,
+              onProgress: (percent) => {
+                // 轮询进度覆盖匀速进度
+                setProgress(percent);
+              },
+            });
+
+            if (pollResult?.url) {
+              const videoUrl = pollResult.url;
+              setGeneratedVideo(videoUrl);
+              const newVideoItem: VideoItem = {
+                id: `vid-${Date.now()}`,
+                url: videoUrl,
+                duration,
+                resolution,
+                aspectRatio,
+              };
+              setGeneratedVideos((prev) => [newVideoItem, ...prev]);
+            } else {
+              const reason = pollResult?.status === 'Failed' ? '任务失败' : '轮询超时';
+              toast.error(`视频${reason}，请重试`);
+              setBillingError(`视频${reason}，请重试`);
+            }
+          } else {
+            // 情况3：既没有 URL 也没有 taskId（mock 模式下的 fallback）
+            const videoUrl = `https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4?t=${Date.now()}`;
+            setGeneratedVideo(videoUrl);
+            const newVideoItem: VideoItem = {
+              id: `vid-${Date.now()}`,
+              url: videoUrl,
+              duration,
+              resolution,
+              aspectRatio,
+            };
+            setGeneratedVideos((prev) => [newVideoItem, ...prev]);
+          }
 
           addProject({
             id: `proj-${Date.now()}`,

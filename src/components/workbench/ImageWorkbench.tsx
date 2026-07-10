@@ -1,10 +1,12 @@
-import { useState, useRef } from 'react';
-import { Send, Loader2, Download, ZoomIn, X, ImagePlus, Wand2, ChevronUp, ImageIcon, RatioIcon, Layers } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Send, Loader2, Download, ZoomIn, X, ImagePlus, Wand2, ChevronUp, ImageIcon, RatioIcon, Layers, AlertCircle } from 'lucide-react';
 import type { AIModel } from '@/data/models';
 import { useStore } from '@/store/useStore';
 import { useAccountStore } from '@/store/useAccountStore';
 import api from '@/utils/api';
 import { getEstimatedCost, runBillableTask } from '@/utils/billing';
+import { pollKieTask } from '@/utils/kieTaskPolling';
+import { useToast } from '@/components/ui/Toast';
 import { ModelLogo, DescriptionCard, SendButton, CostHint } from './shared';
 
 interface ProviderGenerationResponse {
@@ -12,9 +14,38 @@ interface ProviderGenerationResponse {
   url?: string;
   content?: string;
   status?: string;
+  taskId?: string;
   providerMode?: 'upstream' | 'mock';
   provider?: string;
   upstreamModel?: string;
+}
+
+/* ── 轮询中的占位卡片 ── */
+function PollingImageCard({ progress }: { progress: number }) {
+  return (
+    <div className="relative rounded-xl overflow-hidden border border-[#8b5cf6]/20 bg-[var(--bg-card,#1c1c1e)] flex flex-col items-center justify-center aspect-square">
+      {/* 脉冲动画背景 */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#8b5cf6]/10 to-[#6366f1]/5 animate-pulse" />
+      {/* 旋转 spinner */}
+      <div className="relative w-12 h-12">
+        <div className="absolute inset-0 rounded-full border-2 border-[#8b5cf6]/20" />
+        <div className="absolute inset-0 rounded-full border-2 border-t-[#8b5cf6] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+        <Wand2 className="absolute inset-0 m-auto w-5 h-5 text-[#8b5cf6]" />
+      </div>
+      <p className="relative mt-3 text-xs text-[#a78bfa]">生成中...</p>
+      {/* 进度条 */}
+      <div className="relative mt-2 w-32 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div
+          className="h-full rounded-full transition-all duration-1000 ease-linear"
+          style={{
+            width: `${progress}%`,
+            background: 'linear-gradient(90deg, #8b5cf6, #6366f1)',
+          }}
+        />
+      </div>
+      <p className="relative mt-1 text-[10px] text-[#52525b]">{progress}%</p>
+    </div>
+  );
 }
 
 /* ─────────────── 快捷提示词卡片 ─────────────── */
@@ -55,9 +86,12 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   const [numImagesState, setNumImagesState] = useState(1);
   const [activeTab, setActiveTab] = useState<'style' | 'ratio' | 'count' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingTaskIds, setPendingTaskIds] = useState<Set<string>>(new Set());
+  const [pollingProgress, setPollingProgress] = useState<Record<string, number>>({});
 
   const { addProject } = useStore();
   const { refreshBalance } = useAccountStore();
+  const toast = useToast();
 
   const aspectRatioToSize: Record<string, string> = {
     '1:1': '1024x1024',
@@ -94,6 +128,46 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
     setReferenceImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  /** 轮询单个 KIE 任务并更新图片列表 */
+  const pollAndResolveTask = useCallback(async (taskId: string, index: number) => {
+    const slotKey = `slot-${index}`;
+    const result = await pollKieTask(taskId, {
+      maxAttempts: 60,
+      intervalMs: 3000,
+      onProgress: (percent) => {
+        setPollingProgress((prev) => ({ ...prev, [slotKey]: percent }));
+      },
+    });
+
+    // 轮询完成，从 pending 中移除
+    setPendingTaskIds((prev) => {
+      const next = new Set(prev);
+      next.delete(taskId);
+      return next;
+    });
+    setPollingProgress((prev) => {
+      const next = { ...prev };
+      delete next[slotKey];
+      return next;
+    });
+
+    if (result?.url) {
+      setGeneratedImages((prev) => {
+        const next = [...prev];
+        if (next.length > index) {
+          next[index] = result.url!;
+        } else {
+          next.push(result.url!);
+        }
+        return next;
+      });
+    } else {
+      const reason = result?.status === 'Failed' ? '任务失败' : '轮询超时';
+      toast.error(`图片 ${index + 1} ${reason}，请重试`);
+      setBillingError(`图片 ${index + 1} ${reason}`);
+    }
+  }, [toast]);
+
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setBillingError('');
@@ -117,10 +191,38 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               }),
             ),
           );
-          const imgs = results.map((item) => item.url).filter(Boolean) as string[];
+
           const first = results[0];
           setProviderInfo(`${first?.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${first?.provider || 'mock'} · ${first?.upstreamModel || model.id}`);
-          setGeneratedImages(imgs);
+
+          // 分类：有 url 的直接展示，只有 taskId 的需要前端轮询
+          const directImages: string[] = [];
+          const pollingEntries: { taskId: string; index: number }[] = [];
+
+          results.forEach((item, i) => {
+            if (item.url) {
+              directImages.push(item.url);
+            } else if (item.taskId) {
+              directImages.push(''); // 占位
+              pollingEntries.push({ taskId: item.taskId, index: i });
+            }
+          });
+
+          setGeneratedImages(directImages);
+
+          // 启动需要轮询的任务
+          const newPending = new Set(pollingEntries.map((e) => e.taskId));
+          setPendingTaskIds((prev) => {
+            const next = new Set(prev);
+            pollingEntries.forEach((e) => next.add(e.taskId));
+            return next;
+          });
+
+          // 异步轮询（不阻塞 run 的完成）
+          pollingEntries.forEach((entry) => {
+            pollAndResolveTask(entry.taskId, entry.index);
+          });
+
           addProject({
             id: `proj-${Date.now()}`,
             name: prompt.substring(0, 30) + (prompt.length > 30 ? '...' : ''),
@@ -203,36 +305,42 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               </div>
             )}
 
-            {generatedImages.map((img, i) => (
-              <div
-                key={i}
-                className="group relative rounded-xl overflow-hidden border border-white/[0.08] bg-[var(--bg-card,#1c1c1e)] cursor-pointer"
-                onClick={() => setPreviewImage(img)}
-              >
-                <img src={img} alt={`生成结果 ${i + 1}`} className="w-full h-auto object-cover" />
-                {/* 悬停操作层 */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewImage(img);
-                    }}
-                    className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(img, i);
-                    }}
-                    className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
+            {generatedImages.map((img, i) => {
+              // 空字符串表示正在轮询中，显示占位卡片
+              if (!img) {
+                return <PollingImageCard key={`polling-${i}`} progress={pollingProgress[`slot-${i}`] ?? 0} />;
+              }
+              return (
+                <div
+                  key={i}
+                  className="group relative rounded-xl overflow-hidden border border-white/[0.08] bg-[var(--bg-card,#1c1c1e)] cursor-pointer"
+                  onClick={() => setPreviewImage(img)}
+                >
+                  <img src={img} alt={`生成结果 ${i + 1}`} className="w-full h-auto object-cover" />
+                  {/* 悬停操作层 */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewImage(img);
+                      }}
+                      className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(img, i);
+                      }}
+                      className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -1,4 +1,6 @@
 import db from '../db/index.js';
+import { createKieTask, pollKieTask, mapParamsToKieInput } from './kieAdapter.js';
+import type { KieTaskResult } from './kieAdapter.js';
 
 export type ProviderCategory = 'chat' | 'image' | 'video' | 'audio';
 
@@ -49,17 +51,22 @@ const defaultProviderConfig: ProviderConfig = {
   providers: [
     {
       id: 'kie-ai',
-      name: 'kie.ai',
+      name: 'KIE AI',
       enabled: false,
       baseUrl: 'https://api.kie.ai',
       apiKey: '',
-      timeoutSeconds: 120,
+      timeoutSeconds: 180,
       costMultiplier: 1,
       models: [
-        { localModel: 'gpt-image-2', upstreamModel: 'kie-image', category: 'image', enabled: true },
-        { localModel: 'sora-2', upstreamModel: 'kie-video', category: 'video', enabled: true },
-        { localModel: 'suno-v4-5', upstreamModel: 'kie-music', category: 'audio', enabled: true },
-        { localModel: 'gpt-5.5', upstreamModel: 'kie-chat', category: 'chat', enabled: true },
+        { localModel: 'grok-4-5', upstreamModel: 'grok-4-5', category: 'chat', enabled: true },
+        { localModel: 'claude-sonnet-5', upstreamModel: 'claude-sonnet-5', category: 'chat', enabled: true },
+        { localModel: 'seedream-4', upstreamModel: 'bytedance/seedream-v4-text-to-image', category: 'image', enabled: true },
+        { localModel: 'grok-imagine', upstreamModel: 'grok-imagine/text-to-image', category: 'image', enabled: true },
+        { localModel: 'flux-2', upstreamModel: 'flux-2/flex-text-to-image', category: 'image', enabled: true },
+        { localModel: 'kling-2.6', upstreamModel: 'kling-2.6/text-to-video', category: 'video', enabled: true },
+        { localModel: 'seedance-2', upstreamModel: 'bytedance/seedance-2-mini', category: 'video', enabled: true },
+        { localModel: 'grok-video', upstreamModel: 'grok-imagine-video-1-5-preview', category: 'video', enabled: true },
+        { localModel: 'happyhorse', upstreamModel: 'happyhorse-1-1', category: 'video', enabled: true },
       ],
     },
   ],
@@ -169,7 +176,68 @@ function getMockResult(input: ProviderGenerateInput, reason = '未配置可用�
   };
 }
 
+/** 判断是否为 KIE provider */
+function isKieProvider(provider: ProviderItem): boolean {
+  return provider.id === 'kie-ai' || provider.baseUrl.includes('kie.ai');
+}
+
+/** 将 KIE 异步任务结果转换为统一的 ProviderGenerateResult */
+function kieTaskToResult(taskResult: KieTaskResult, input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): ProviderGenerateResult {
+  const url = taskResult.image_url || taskResult.video_url;
+  const status = taskResult.status === 'Success' ? 'success' : taskResult.status === 'Failed' ? 'mock' : 'pending';
+
+  return {
+    id: `${input.category}-${Date.now()}`,
+    status,
+    providerMode: 'upstream',
+    provider: provider.name,
+    upstreamModel,
+    url,
+    raw: taskResult,
+  };
+}
+
+/** 通过 KIE 异步任务流程请求上游（image/video） */
+async function requestKieAsyncTask(input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): Promise<ProviderGenerateResult> {
+  const baseUrl = provider.baseUrl.replace(/\/+$/, '');
+  const imageUrls = input.params?.imageUrls as string[] | undefined;
+  const kieInput = mapParamsToKieInput(upstreamModel, input.params, input.prompt, imageUrls);
+
+  // 1. 创建异步任务
+  const { taskId } = await createKieTask(baseUrl, provider.apiKey, upstreamModel, kieInput);
+
+  // 2. 轮询等待结果（超时 3 分钟）
+  const timeoutSeconds = Math.max(10, provider.timeoutSeconds || 180);
+  try {
+    const result = await pollKieTask(baseUrl, provider.apiKey, taskId, {
+      timeoutMs: timeoutSeconds * 1000,
+      intervalMs: 3000,
+    });
+
+    return kieTaskToResult(result, input, provider, upstreamModel);
+  } catch (pollError) {
+    console.error(`KIE 任务 ${taskId} 轮询失败:`, pollError);
+    // 轮询失败时返回 pending 状态，让前端有机会后续查询
+    return {
+      id: `${input.category}-${Date.now()}`,
+      status: 'pending',
+      providerMode: 'upstream',
+      provider: provider.name,
+      upstreamModel,
+      raw: {
+        taskId,
+        pollError: pollError instanceof Error ? pollError.message : String(pollError),
+      },
+    };
+  }
+}
+
 async function requestUpstream(input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): Promise<ProviderGenerateResult> {
+  // KIE 的 image/video 使用异步任务流程
+  if (isKieProvider(provider) && (input.category === 'image' || input.category === 'video')) {
+    return requestKieAsyncTask(input, provider, upstreamModel);
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Math.max(10, provider.timeoutSeconds || 120) * 1000);
   // baseUrl 可能已包含路径（如 https://rongchuan.ai/v1/），需要智能拼接 endpoint
