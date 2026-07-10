@@ -496,7 +496,7 @@ function Background() {
           playsInline
           onError={() => setVideoError(true)}
         >
-          <source src="/videos/bg.mp4" type="video/mp4" />
+          <source src="/api/videos/bg.mp4" type="video/mp4" />
         </video>
       )}
 

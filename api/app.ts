@@ -210,6 +210,15 @@ const distVideoPath = path.resolve(__dirname, '../dist/videos');
 const projectVideoPath = path.resolve(__dirname, '../public/videos');
 const legacyVideoPath = '/www/sites/www.2pix.cn/index/videos';
 
+// /api/videos 路径（前端通过 /api/videos/bg.mp4 请求，确保被 proxy_pass 转发到 Node.js）
+const videoStaticDir = fs.existsSync(distVideoPath) ? distVideoPath
+  : fs.existsSync(projectVideoPath) ? projectVideoPath
+  : null;
+if (videoStaticDir) {
+  app.use('/api/videos', express.static(videoStaticDir));
+}
+
+// /videos 路径（直接访问）
 if (fs.existsSync(distVideoPath)) {
   app.use('/videos', express.static(distVideoPath));
 } else if (fs.existsSync(projectVideoPath)) {
