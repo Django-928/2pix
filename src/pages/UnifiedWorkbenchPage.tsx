@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -25,6 +25,7 @@ import {
   Type,
   Gauge,
   HelpCircle,
+  RefreshCw,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { aiModels as defaultModels, primaryCategories, secondaryCategories } from '@/data/models';
@@ -35,6 +36,7 @@ import useAuthStore from '@/store/useAuthStore';
 import useAccountStore from '@/store/useAccountStore';
 import api from '@/utils/api';
 import { useToast } from '@/components/ui/Toast';
+import { getEstimatedCost, runBillableTask } from '@/utils/billing';
 import ChatWorkbench from '@/components/workbench/ChatWorkbench';
 
 /* ─────────────── 主页面 ─────────────── */
@@ -192,6 +194,8 @@ export default function UnifiedWorkbenchPage() {
   const [activeParamId, setActiveParamId] = useState<string | null>(null);
   const [paramSelections, setParamSelections] = useState<Record<string, string>>({});
   const [prompt, setPrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const generateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* ───── 挂载时从 API 拉取模型列表，失败时静默回退 ───── */
   useEffect(() => {
@@ -263,11 +267,68 @@ export default function UnifiedWorkbenchPage() {
     }
   };
 
-  const handleGenerate = () => {
-    if (!prompt.trim()) return;
-    // 当前仅作为 UI 演示，保留参数与提示词状态
-    // eslint-disable-next-line no-console
-    console.log('开始生成', { prompt, params: paramSelections, model: activeModel.id });
+  const handleGenerate = async () => {
+    if (!prompt.trim() || isGenerating) return;
+    setIsGenerating(true);
+
+    const category = activeModel.category;
+    const style = paramSelections['style'] || 'auto';
+    const ratio = paramSelections['ratio'] || '1:1';
+    const quality = paramSelections['quality'] || 'standard';
+
+    try {
+      await runBillableTask({
+        model: activeModel.id,
+        category,
+        estimatedCost: getEstimatedCost(category),
+        description: `工作台 ${activeModel.name} 生成`,
+        onBalanceChange: refreshBalance,
+        run: async () => {
+          let result: Record<string, unknown>;
+
+          if (category === 'chat') {
+            result = await api.post('/chat/message', {
+              prompt,
+              model: activeModel.id,
+              params: { messages: [{ role: 'user', content: prompt }] },
+            });
+            toast.success(`${activeModel.name} 回复已生成`);
+          } else if (category === 'image') {
+            result = await api.post('/image/generate', {
+              prompt,
+              model: activeModel.id,
+              style,
+              resolution: ratio === '1:1' ? '1024x1024' : ratio === '16:9' ? '1792x1024' : '1024x1792',
+            });
+            toast.success(`${activeModel.name} 图片已生成`);
+          } else if (category === 'video') {
+            result = await api.post('/video/generate', {
+              prompt,
+              model: activeModel.id,
+              aspectRatio: ratio,
+              duration: quality === 'quality' ? '10' : '5',
+            });
+            toast.success(`${activeModel.name} 视频已提交生成`);
+          } else {
+            result = await api.post('/audio/generate', {
+              prompt,
+              model: activeModel.id,
+            });
+            toast.success(`${activeModel.name} 音频已提交生成`);
+          }
+
+          return result;
+        },
+      });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '生成失败，请重试';
+      toast.error(msg);
+    } finally {
+      setIsGenerating(false);
+      // 防止连续点击
+      if (generateTimeoutRef.current) clearTimeout(generateTimeoutRef.current);
+      generateTimeoutRef.current = setTimeout(() => setIsGenerating(false), 1000);
+    }
   };
 
   const modelGradient = getModelGradient(activeModel.category);
@@ -652,11 +713,21 @@ export default function UnifiedWorkbenchPage() {
                   <button
                     type="button"
                     onClick={handleGenerate}
-                    className="group inline-flex items-center gap-2 rounded-full bg-white text-black font-semibold text-sm px-6 py-2.5 shadow-[0_4px_24px_rgba(255,255,255,0.15)] hover:bg-white/90 hover:shadow-[0_6px_32px_rgba(255,255,255,0.22)] hover:-translate-y-0.5 active:scale-[0.98] transition-all"
+                    disabled={!prompt.trim() || isGenerating}
+                    className="group inline-flex items-center gap-2 rounded-full bg-white text-black font-semibold text-sm px-6 py-2.5 shadow-[0_4px_24px_rgba(255,255,255,0.15)] hover:bg-white/90 hover:shadow-[0_6px_32px_rgba(255,255,255,0.22)] hover:-translate-y-0.5 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:scale-100"
                   >
-                    <Sparkles className="w-4 h-4" />
-                    <span>开始生成</span>
-                    <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>生成中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>开始生成</span>
+                        <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                      </>
+                    )}
                   </button>
                 </div>
 
