@@ -123,11 +123,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         />
       )}
       <aside
-        className={`fixed left-0 top-0 h-full bg-dark-800/95 backdrop-blur-xl border-r border-purple-500/10 z-50 transition-all duration-300 ${
+        className={`fixed left-0 top-0 h-full bg-dark-800/95 backdrop-blur-xl border-r border-purple-500/10 z-50 transition-all duration-300 flex flex-col ${
           collapsed ? 'w-16' : 'w-60'
         } ${collapsed ? '' : 'shadow-2xl'}`}
       >
-        <div className="h-16 flex items-center justify-between px-4 border-b border-purple-500/10">
+        <div className="h-16 flex-shrink-0 flex items-center justify-between px-4 border-b border-purple-500/10">
           {!collapsed && (
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#8b5cf6] to-[#6366f1] flex items-center justify-center">
@@ -144,7 +144,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </button>
         </div>
 
-        <nav className="p-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeItem?.id === item.id;
