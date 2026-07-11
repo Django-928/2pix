@@ -77,7 +77,7 @@ export default function ChatPage() {
           const assistantMessage: Message = {
             id: result.id || `msg-${Date.now()}`,
             role: 'assistant',
-            content: `${result.content || '模型未返回内容。'}\n\n[${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || currentModel}]`,
+            content: result.content || '模型未返回内容。',
             createdAt: new Date().toISOString(),
           };
           addMessage(currentConversationId, assistantMessage);

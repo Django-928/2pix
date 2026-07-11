@@ -68,7 +68,6 @@ export default function AudioGeneratorPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAudio, setGeneratedAudio] = useState<string | null>(null);
   const [billingError, setBillingError] = useState('');
-  const [providerInfo, setProviderInfo] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(80);
@@ -103,7 +102,6 @@ export default function AudioGeneratorPage() {
             language,
           });
           setGeneratedAudio(result.url || 'speech');
-          setProviderInfo(`${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || 'openai-tts'}`);
           addProject({
             id: `proj-${Date.now()}`,
             name: text.substring(0, 30) + (text.length > 30 ? '...' : ''),
@@ -141,7 +139,6 @@ export default function AudioGeneratorPage() {
             prompt: `${genre} ${mood} ${musicDuration}秒音乐`,
           });
           setGeneratedAudio(result.url || 'music');
-          setProviderInfo(`${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || 'suno-v4-5'}`);
           addProject({
             id: `proj-${Date.now()}`,
             name: `${genre} - ${mood}`,
@@ -509,11 +506,6 @@ export default function AudioGeneratorPage() {
             
             {generatedAudio ? (
               <div className="space-y-6">
-                {providerInfo && (
-                  <div className="rounded-xl border border-primary-600/20 bg-dark-900/40 px-4 py-3 text-xs text-dark-400">
-                    生成来源：{providerInfo}
-                  </div>
-                )}
                 <div className="rounded-xl bg-dark-800/50 p-8">
                   <div className="flex items-center justify-center gap-6 mb-6">
                     <button

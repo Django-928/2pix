@@ -182,7 +182,6 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
   const [generated, setGenerated] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [billingError, setBillingError] = useState('');
-  const [providerInfo, setProviderInfo] = useState('');
   const speed = '1.0x';
   const quality = '标准';
   const emotion = '自动';
@@ -240,16 +239,13 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
             voice: emotion,
             language: 'zh',
           });
-          const info = `${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || model.id}`;
-          setProviderInfo(info);
-
           const newTrack: MusicTrack = {
             id: `track-${Date.now()}`,
             title: text.substring(0, 20),
             duration: audioDuration,
             durationSec,
             gradient: gradients[tracks.length % gradients.length],
-            providerInfo: info,
+            providerInfo: '',
           };
 
           setTracks((prev) => [...prev, newTrack]);
@@ -375,11 +371,6 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
       {tracks.length > 0 && !isGenerating && (
         <div className="flex-1 px-4 pt-2 pb-2 overflow-y-auto">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
-            {providerInfo && (
-              <div className="col-span-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-[#888]">
-                生成来源：{providerInfo}
-              </div>
-            )}
             {tracks.map((track) => (
               <MusicCard
                 key={track.id}

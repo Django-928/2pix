@@ -51,7 +51,6 @@ export default function ImageGeneratorPage() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [billingError, setBillingError] = useState('');
-  const [providerInfo, setProviderInfo] = useState('');
 
   const addProject = useStore((state) => state.addProject);
   const refreshBalance = useAccountStore((state) => state.refreshBalance);
@@ -79,7 +78,6 @@ export default function ImageGeneratorPage() {
           });
           const imageUrl = result.url || `https://neeko-copilot.bytedance.net/api/text2image?prompt=${encodeURIComponent(prompt)}&image_size=square`;
           setGeneratedImage(imageUrl);
-          setProviderInfo(`${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || model}`);
           addProject({
             id: `proj-${Date.now()}`,
             name: prompt.substring(0, 30) + (prompt.length > 30 ? '...' : ''),
@@ -390,11 +388,6 @@ export default function ImageGeneratorPage() {
             
             {generatedImage ? (
               <div className="space-y-4">
-                {providerInfo && (
-                  <div className="rounded-xl border border-primary-600/20 bg-dark-900/40 px-4 py-3 text-xs text-dark-400">
-                    生成来源：{providerInfo}
-                  </div>
-                )}
                 <div className="relative rounded-xl overflow-hidden bg-dark-800">
                   <img
                     src={generatedImage}

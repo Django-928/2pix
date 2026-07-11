@@ -79,7 +79,6 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [billingError, setBillingError] = useState('');
-  const [providerInfo, setProviderInfo] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState('写实');
   const [aspectRatio, setAspectRatio] = useState('1:1');
@@ -193,7 +192,6 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
           );
 
           const first = results[0];
-          setProviderInfo(`${first?.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${first?.provider || 'mock'} · ${first?.upstreamModel || model.id}`);
 
           // 分类：有 url 的直接展示，只有 taskId 的需要前端轮询
           const directImages: string[] = [];
@@ -287,11 +285,6 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
       {(generatedImages.length > 0 || isGenerating) && (
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className={`grid gap-3 max-w-3xl mx-auto ${generatedImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            {providerInfo && (
-              <div className="col-span-full rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-[#888]">
-                生成来源：{providerInfo}
-              </div>
-            )}
 
             {/* Loading 占位 */}
             {isGenerating && generatedImages.length === 0 && (

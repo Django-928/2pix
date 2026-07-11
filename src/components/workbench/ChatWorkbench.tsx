@@ -91,11 +91,6 @@ function CodeBlockWithCopy({ children, className }: { children: string; classNam
 
 /* ─────────────── Markdown 渲染组件 ─────────────── */
 function MarkdownContent({ content }: { content: string }) {
-  // 从内容中提取并移除末尾的 provider 标签（保留在消息外面渲染）
-  const tagRegex = /\s*\[(?:真实上游|Mock兜底)\s*[·]\s*[\w.-]+\s*[·]\s*[\w.-]+\]\s*$/;
-  const tagPart = content.match(tagRegex);
-  const mainContent = tagPart ? content.slice(0, content.lastIndexOf(tagPart[0])).trimEnd() : content;
-
   return (
     <div className="markdown-body">
       <ReactMarkdown
@@ -218,31 +213,9 @@ function MarkdownContent({ content }: { content: string }) {
           },
         }}
       >
-        {mainContent}
+        {content}
       </ReactMarkdown>
     </div>
-  );
-}
-
-/* ─────────────── Provider 标签解析 ─────────────── */
-function ProviderTag({ content }: { content: string }) {
-  const tagRegex = /\[(?:真实上游|Mock兜底)\s*[·]\s*[\w.-]+\s*[·]\s*[\w.-]+\]/;
-  const match = content.match(tagRegex);
-  if (!match) return null;
-
-  const text = match[0];
-  const isMock = text.includes('Mock兜底');
-
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-        isMock
-          ? 'bg-yellow-500/10 text-yellow-400/70 border border-yellow-500/15'
-          : 'bg-green-500/10 text-green-400/70 border border-green-500/15'
-      }`}
-    >
-      {text.slice(1, -1)}
-    </span>
   );
 }
 
@@ -261,10 +234,7 @@ function MessageActions({
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    // 复制时去除末尾标签
-    const tagRegex = /\s*\[(?:真实上游|Mock兜底)\s*[·]\s*[\w.-]+\s*[·]\s*[\w.-]+\]\s*$/;
-    const cleanContent = msg.content.replace(tagRegex, '').trimEnd();
-    onCopy(cleanContent);
+    onCopy(msg.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -341,7 +311,7 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
 
   /* ── 打字机效果 ── */
   const typewriterEffect = useCallback(
-    (fullContent: string, conversationId: string, msgId: string, providerTag: string) => {
+    (fullContent: string, conversationId: string, msgId: string) => {
       let index = 0;
       const speed = 30; // 每30ms一个字符
       abortRef.current = false;
@@ -372,7 +342,7 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
                   ...conv,
                   messages: conv.messages.map((m) =>
                     m.id === msgId
-                      ? { ...m, content: displayed + (index >= fullContent.length ? '\n\n' + providerTag : '') }
+                      ? { ...m, content: displayed }
                       : m
                   ),
                 }
@@ -451,7 +421,6 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
           });
 
           const fullContent = result.content || '模型未返回内容。';
-          const providerTag = `[${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || model.id}]`;
 
           const assistantId = result.id || `msg-${Date.now()}`;
 
@@ -466,7 +435,7 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
 
           // 开始打字机效果
           setTimeout(() => {
-            typewriterEffect(fullContent, currentConversationId!, assistantId, providerTag);
+            typewriterEffect(fullContent, currentConversationId!, assistantId);
           }, 100);
         },
       });
@@ -528,7 +497,6 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
           });
 
           const fullContent = result.content || '模型未返回内容。';
-          const providerTag = `[${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || model.id}]`;
           const assistantId = result.id || `msg-${Date.now()}`;
 
           const assistantMessage = {
@@ -540,7 +508,7 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
           addMessage(currentConversationId!, assistantMessage);
 
           setTimeout(() => {
-            typewriterEffect(fullContent, currentConversationId!, assistantId, providerTag);
+            typewriterEffect(fullContent, currentConversationId!, assistantId);
           }, 100);
         },
       });
@@ -679,9 +647,6 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
                       <MarkdownContent content={msg.content} />
                     )}
                   </div>
-
-                  {/* Provider 标签 */}
-                  {msg.role === 'assistant' && <ProviderTag content={msg.content} />}
 
                   {/* 操作栏 */}
                   <MessageActions

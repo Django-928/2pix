@@ -217,7 +217,6 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
   const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [billingError, setBillingError] = useState('');
-  const [providerInfo, setProviderInfo] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [generatedVideos, setGeneratedVideos] = useState<VideoItem[]>([]);
   const [progress, setProgress] = useState(0);
@@ -283,11 +282,6 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
             duration,
             aspectRatio,
           });
-          setProviderInfo(
-            `${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || model.id}`,
-          );
-
-          // 情况1：后端返回了真实 URL → 直接使用
           if (result.url) {
             setGeneratedVideo(result.url);
             const newVideoItem: VideoItem = {
@@ -488,20 +482,6 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
       {generatedVideos.length > 0 && !isGenerating && (
         <div className="flex-1 overflow-y-auto px-4 py-6">
           <div className="max-w-4xl mx-auto space-y-4">
-            {/* 来源信息 */}
-            {providerInfo && (
-              <div
-                className="rounded-xl px-3 py-2 text-xs"
-                style={{
-                  color: '#888',
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                生成来源：{providerInfo}
-              </div>
-            )}
-
             {/* 视频网格 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {generatedVideos.map((item, i) => (

@@ -184,9 +184,12 @@ export default function AdminProviderConfigPage() {
         { providerId: selectedProvider.id },
       );
       setConnectionStatus((prev) => ({ ...prev, [selectedProvider.id]: { success: true, modelCount: data.modelCount, latency: data.latency } }));
-      toast.success(`连接成功，延迟 ${data.latency}ms，${data.modelCount} 个模型可用`);
+      toast.success(`连接成功！共发现 ${data.modelCount} 个可用模型`);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : '测试连接失败';
+      let msg = error instanceof Error ? error.message : '测试连接失败';
+      if (msg.includes('DOCTYPE') || msg.includes('<')) {
+        msg = 'Base URL 可能不正确，该地址返回了网页而非API响应。请确认API地址。';
+      }
       setConnectionStatus((prev) => ({ ...prev, [selectedProvider.id]: { success: false, error: msg } }));
       toast.error(msg);
     } finally {
@@ -337,6 +340,9 @@ export default function AdminProviderConfigPage() {
                   Base URL
                   <div className="flex gap-2">
                     <input className={`${inputClass} flex-1`} value={selectedProvider.baseUrl} onChange={(e) => updateProvider({ baseUrl: e.target.value })} />
+                  </div>
+                  <p className="text-xs text-dark-500 mt-1">请填写API地址，如 https://your-oneapi.com（系统会自动拼接 /v1/ 路径）</p>
+                  <div className="flex gap-2 mt-2">
                     <button
                       onClick={testConnection}
                       disabled={testing || !selectedProvider.baseUrl || !selectedProvider.apiKey}
@@ -373,7 +379,7 @@ export default function AdminProviderConfigPage() {
                     {connectionStatus[selectedProvider.id]?.success ? (
                       <>
                         <CheckCircle2 size={16} />
-                        <span>连接成功，延迟 {connectionStatus[selectedProvider.id]?.latency}ms，{connectionStatus[selectedProvider.id]?.modelCount} 个模型可用</span>
+                        <span>连接成功！共发现 {connectionStatus[selectedProvider.id]?.modelCount} 个可用模型</span>
                       </>
                     ) : (
                       <>

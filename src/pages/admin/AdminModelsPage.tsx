@@ -9,6 +9,8 @@ import {
   Eye,
   EyeOff,
   PlugZap,
+  Download,
+  Image,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
@@ -76,6 +78,71 @@ const STATUS_LABELS: Record<string, string> = {
   inactive: '已下线',
 };
 
+/** 预设模型图标 */
+const PRESET_ICONS: { icon: string; label: string }[] = [
+  { icon: '🤖', label: '通用 AI' },
+  { icon: '💬', label: 'ChatGPT' },
+  { icon: '🦜', label: 'Claude' },
+  { icon: '✨', label: 'Gemini' },
+  { icon: '🎨', label: 'DALL-E' },
+  { icon: '🎬', label: 'Sora' },
+  { icon: '🎵', label: 'Suno' },
+  { icon: '🔥', label: 'MidJourney' },
+  { icon: '🎯', label: 'Stable Diffusion' },
+  { icon: '📸', label: '图像模型' },
+  { icon: '📹', label: '视频模型' },
+  { icon: '🔊', label: '音频模型' },
+  { icon: '🌟', label: '新品' },
+  { icon: '🚀', label: '推荐' },
+  { icon: '🧠', label: '大语言模型' },
+  { icon: '🖼️', label: '生成模型' },
+];
+
+/** 从 localModel 推断友好的中文名称 */
+function inferModelName(localModel: string): string {
+  const parts = localModel.split(/[-_]/);
+  const words = parts.map((part) => {
+    const lower = part.toLowerCase();
+    // 已知前缀映射
+    const prefixMap: Record<string, string> = {
+      gpt: 'GPT', claude: 'Claude', gemini: 'Gemini', llama: 'Llama',
+      qwen: 'Qwen', deepseek: 'DeepSeek', chatglm: 'ChatGLM', baichuan: 'Baichuan',
+      dall: 'DALL-E', midjourney: 'MidJourney', stable: 'Stable', diffusion: 'Diffusion',
+      sora: 'Sora', kling: '可灵', seedance: 'Seedance', vidu: 'Vidu', runway: 'Runway',
+      pika: 'Pika', suno: 'Suno', udio: 'Udio', elevenlabs: 'ElevenLabs',
+      whisper: 'Whisper', tts: 'TTS', grok: 'Grok', o1: 'O1', o3: 'O3',
+      o4: 'O4', gpt4: 'GPT-4', gpt5: 'GPT-5',
+    };
+    for (const [key, value] of Object.entries(prefixMap)) {
+      if (lower.startsWith(key)) return value;
+    }
+    // 数字版本号
+    if (/^\d+(\.\d+)*$/.test(part)) return part;
+    return part.charAt(0).toUpperCase() + part.slice(1);
+  });
+  return words.join(' ');
+}
+
+/** 从 localModel 推断默认图标 */
+function inferModelIcon(localModel: string, category: string): string {
+  const lower = localModel.toLowerCase();
+  if (lower.includes('claude')) return '🦜';
+  if (lower.includes('gpt') || lower.includes('chatgpt')) return '💬';
+  if (lower.includes('gemini')) return '✨';
+  if (lower.includes('llama')) return '🦙';
+  if (lower.includes('dall') || lower.includes('image')) return '🎨';
+  if (lower.includes('sora') || lower.includes('video') || lower.includes('kling') || lower.includes('seedance') || lower.includes('vidu') || lower.includes('runway') || lower.includes('pika')) return '🎬';
+  if (lower.includes('suno') || lower.includes('udio') || lower.includes('audio') || lower.includes('tts') || lower.includes('whisper')) return '🎵';
+  if (lower.includes('stable') || lower.includes('diffusion') || lower.includes('midjourney')) return '🔥';
+  if (lower.includes('grok')) return '🚀';
+  if (lower.includes('deepseek')) return '🧠';
+  if (lower.includes('qwen')) return '💬';
+  if (category === 'image') return '📸';
+  if (category === 'video') return '📹';
+  if (category === 'audio') return '🔊';
+  return '🤖';
+}
+
 interface ModelFormData {
   id: string;
   name: string;
@@ -111,6 +178,11 @@ export default function AdminModelsPage() {
   const [formData, setFormData] = useState<ModelFormData>({ ...emptyFormData });
   const [submitting, setSubmitting] = useState(false);
   const [providerConfig, setProviderConfig] = useState<ProviderConfig | null>(null);
+  const [syncPrompt, setSyncPrompt] = useState<{ count: number; models: { localModel: string; category: string }[] } | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [iconEditModel, setIconEditModel] = useState<Model | null>(null);
+  const [iconEditValue, setIconEditValue] = useState('');
+  const [iconSaving, setIconSaving] = useState(false);
 
   useEffect(() => {
     loadModels();
@@ -156,6 +228,83 @@ export default function AdminModelsPage() {
     }
     return map;
   }, [providerConfig]);
+
+  /** 检测 provider 中有但 ai_models 表中还没有的模型 */
+  const importableModels = useMemo(() => {
+    if (!providerConfig || models.length > 0) return [];
+    const existingIds = new Set(models.map((m) => m.id));
+    const importable: { localModel: string; category: string }[] = [];
+    for (const provider of providerConfig.providers) {
+      if (!provider.enabled) continue;
+      for (const m of provider.models) {
+        if (!m.enabled) continue;
+        if (!existingIds.has(m.localModel) && !importable.some((i) => i.localModel === m.localModel)) {
+          importable.push({ localModel: m.localModel, category: m.category });
+        }
+      }
+    }
+    return importable;
+  }, [providerConfig, models]);
+
+  /** 自动提示导入 */
+  useEffect(() => {
+    if (importableModels.length > 0 && !syncPrompt && !syncing) {
+      setSyncPrompt({ count: importableModels.length, models: importableModels });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [importableModels.length]);
+
+  const handleImportFromProvider = async () => {
+    if (!syncPrompt) return;
+    setSyncing(true);
+    try {
+      let added = 0;
+      for (const m of syncPrompt.models) {
+        try {
+          await api.post('/admin/models', {
+            id: m.localModel,
+            name: inferModelName(m.localModel),
+            description: '',
+            icon: inferModelIcon(m.localModel, m.category),
+            category: m.category,
+            sort_order: 0,
+            is_new: 1,
+            is_hot: 0,
+          });
+          added++;
+        } catch {
+          // 模型可能已存在，跳过
+        }
+      }
+      toast.success(`成功导入 ${added} 个模型`);
+      setSyncPrompt(null);
+      loadModels();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '导入失败');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleOpenIconEdit = (model: Model) => {
+    setIconEditModel(model);
+    setIconEditValue(model.icon || '');
+  };
+
+  const handleSaveIcon = async () => {
+    if (!iconEditModel) return;
+    setIconSaving(true);
+    try {
+      await api.put(`/admin/models/${iconEditModel.id}`, { icon: iconEditValue });
+      toast.success('图标已更新');
+      setIconEditModel(null);
+      loadModels();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '更新图标失败');
+    } finally {
+      setIconSaving(false);
+    }
+  };
 
   const handleCreate = () => {
     setFormData({ ...emptyFormData });
@@ -306,7 +455,38 @@ export default function AdminModelsPage() {
 
         {/* 表格 */}
         <div className="overflow-x-auto -mx-5">
-          <table className="w-full">
+
+        {/* 自动同步提示横幅 */}
+        {syncPrompt && (
+          <div className="mb-5 flex items-center gap-4 rounded-2xl border border-purple-500/30 bg-purple-500/10 px-5 py-4">
+            <Download size={20} className="flex-shrink-0 text-purple-400" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-purple-200">
+                检测到 {syncPrompt.count} 个已配置的 Provider 模型
+              </p>
+              <p className="mt-1 text-xs text-purple-300/80">
+                这些模型在 Provider 配置中已启用但尚未导入模型管理表，是否一键导入？
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={handleImportFromProvider}
+                disabled={syncing}
+                className="inline-flex items-center gap-2 rounded-xl bg-purple-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 transition hover:bg-purple-400 disabled:opacity-50"
+              >
+                {syncing ? <RefreshCw size={16} className="animate-spin" /> : <Download size={16} />}
+                一键导入
+              </button>
+              <button
+                onClick={() => setSyncPrompt(null)}
+                className="px-4 py-2.5 rounded-xl text-sm text-dark-400 hover:text-dark-200 transition-colors"
+              >
+                稍后再说
+              </button>
+            </div>
+          </div>
+        )}
+        <table className="w-full">
             <thead>
               <tr className="text-left text-sm text-dark-400 border-b border-purple-500/10">
                 <th className="pb-3 px-5 font-medium">图标</th>
@@ -344,7 +524,16 @@ export default function AdminModelsPage() {
                 return (
                   <tr key={model.id} className="border-b border-purple-500/5 hover:bg-purple-500/5">
                     <td className="py-4 px-5">
-                      <span className="text-2xl">{model.icon || '✨'}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{model.icon || '✨'}</span>
+                        <button
+                          onClick={() => handleOpenIconEdit(model)}
+                          className="p-1 rounded-lg text-dark-600 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
+                          title="修改图标"
+                        >
+                          <Image size={14} />
+                        </button>
+                      </div>
                     </td>
                     <td className="py-4 px-5">
                       <span className="font-mono text-sm text-dark-300">{model.id}</span>
@@ -630,6 +819,83 @@ export default function AdminModelsPage() {
                 >
                   {submitting && <RefreshCw size={16} className="animate-spin" />}
                   确认删除
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 图标编辑弹窗 */}
+      {iconEditModel && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="glass rounded-2xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-purple-500/10">
+              <h3 className="text-lg font-semibold text-dark-100">
+                修改图标 - {iconEditModel.name}
+              </h3>
+              <button
+                onClick={() => setIconEditModel(null)}
+                className="p-2 rounded-lg text-dark-500 hover:text-dark-300 hover:bg-dark-700/50 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {/* 当前图标预览 */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-dark-900/50 border border-purple-500/20">
+                  <span className="text-3xl">{iconEditValue || '✨'}</span>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-dark-300 mb-2">图标字符或 URL</label>
+                  <input
+                    type="text"
+                    value={iconEditValue}
+                    onChange={(e) => setIconEditValue(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-dark-900/50 border border-purple-500/20 rounded-xl text-dark-200 text-center text-xl focus:outline-none focus:border-purple-500/40 transition-colors"
+                    placeholder="输入 emoji 或图标 URL"
+                  />
+                </div>
+              </div>
+
+              {/* 预设图标选择 */}
+              <div>
+                <p className="text-sm font-medium text-dark-300 mb-2">预设图标</p>
+                <div className="grid grid-cols-8 gap-2">
+                  {PRESET_ICONS.map((preset) => (
+                    <button
+                      key={preset.icon}
+                      onClick={() => setIconEditValue(preset.icon)}
+                      className={`flex flex-col items-center gap-1 p-2 rounded-xl border transition-all ${
+                        iconEditValue === preset.icon
+                          ? 'border-purple-500/50 bg-purple-500/15'
+                          : 'border-purple-500/10 hover:border-purple-500/30 hover:bg-purple-500/5'
+                      }`}
+                      title={preset.label}
+                    >
+                      <span className="text-lg">{preset.icon}</span>
+                      <span className="text-[9px] text-dark-500 truncate w-full text-center">{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-purple-500/10">
+                <button
+                  type="button"
+                  onClick={() => setIconEditModel(null)}
+                  className="px-4 py-2.5 glass rounded-xl text-dark-300 hover:text-dark-100 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSaveIcon}
+                  disabled={iconSaving}
+                  className="px-4 py-2.5 bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] text-white font-medium rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {iconSaving && <RefreshCw size={16} className="animate-spin" />}
+                  保存图标
                 </button>
               </div>
             </div>

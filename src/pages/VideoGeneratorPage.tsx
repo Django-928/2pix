@@ -539,8 +539,7 @@ export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPa
             style: modeLabel[activeModel.mode],
           });
           const outputUrl = result.url || getTaskImage(finalPrompt, `${activeModel.name} completed`);
-          const providerInfo = `${result.providerMode === 'upstream' ? '真实上游' : 'Mock兜底'} · ${result.provider || 'mock'} · ${result.upstreamModel || activeModel.id}`;
-          setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status: 'complete', progress: 100, outputUrl, providerInfo } : task)));
+          setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status: 'complete', progress: 100, outputUrl } : task)));
           addProject({
             id: `proj-${Date.now()}`,
             name: `${activeModel.name} · ${finalPrompt.slice(0, 22)}${finalPrompt.length > 22 ? '...' : ''}`,
@@ -550,7 +549,6 @@ export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPa
               prompt: finalPrompt,
               model: activeModel.name,
               mode: modeLabel[activeModel.mode],
-              providerInfo,
               params,
               assets,
             },
@@ -813,7 +811,6 @@ export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPa
                       </span>
                     </div>
                     <p>{task.prompt}</p>
-                    {task.providerInfo && <p className="text-xs text-dark-500">生成来源：{task.providerInfo}</p>}
                     <div className="video-task-actions">
                       <button type="button" onClick={() => copyPrompt(task.prompt)}>
                         <Copy size={14} />
