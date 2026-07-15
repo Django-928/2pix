@@ -124,7 +124,7 @@ function MarkdownContent({ content }: { content: string }) {
 }
 
 /* ── Chat 类型智能体的轻量聊天界面 ── */
-function AgentChatView({ agent }: { agent: Agent }) {
+export function AgentChatView({ agent }: { agent: Agent }) {
   const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string }>>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);

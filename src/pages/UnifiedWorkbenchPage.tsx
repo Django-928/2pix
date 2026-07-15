@@ -30,8 +30,9 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { aiModels as defaultModels, primaryCategories, secondaryCategories } from '@/data/models';
 import type { AIModel } from '@/data/models';
-import { agents as agentList } from '@/data/agents';
+import { agents as agentList, getAgentById } from '@/data/agents';
 import type { Agent } from '@/data/agents';
+import { AgentChatView } from '@/pages/AgentRunPage';
 import { useStore } from '@/store/useStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import useAuthStore from '@/store/useAuthStore';
@@ -40,6 +41,8 @@ import api from '@/utils/api';
 import { useToast } from '@/components/ui/Toast';
 import { getEstimatedCost, runBillableTask } from '@/utils/billing';
 import ChatWorkbench from '@/components/workbench/ChatWorkbench';
+import ImageWorkbench from '@/components/workbench/ImageWorkbench';
+import VideoWorkbench from '@/components/workbench/VideoWorkbench';
 
 /* ─────────────── 主页面 ─────────────── */
 /* ───── API 返回的 snake_case 模型数据 ───── */
@@ -198,6 +201,8 @@ export default function UnifiedWorkbenchPage() {
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const generateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
+  const [activePanel, setActivePanel] = useState<'model' | 'manju' | 'agent'>('model');
 
   /* ───── 挂载时从 API 拉取模型列表，失败时静默回退 ───── */
   useEffect(() => {
@@ -586,9 +591,12 @@ export default function UnifiedWorkbenchPage() {
                 {primaryTab === 'zhinengti' && (
                   <>
                     {/* 漫剧工坊入口 */}
-                    <Link
-                      to="/manju"
-                      className="block w-full px-3 py-3 rounded-xl text-left transition-all border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12]"
+                    <button
+                      type="button"
+                      onClick={() => { setActiveAgentId(null); setActivePanel('manju'); }}
+                      className={`block w-full px-3 py-3 rounded-xl text-left transition-all border ${
+                        activePanel === 'manju' ? 'border-fuchsia-500/40 bg-fuchsia-500/10' : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12]'
+                      }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold shadow-lg">
@@ -606,7 +614,7 @@ export default function UnifiedWorkbenchPage() {
                           </p>
                         </div>
                       </div>
-                    </Link>
+                    </button>
                     {/* 工作流Agent列表 */}
                     {(() => {
                       const filtered = secondaryTab === 'all'
@@ -618,11 +626,15 @@ export default function UnifiedWorkbenchPage() {
                           image: 'from-emerald-400 to-cyan-400',
                           video: 'from-orange-500 to-red-500',
                         };
+                        const isActive = activeAgentId === agent.id && activePanel === 'agent';
                         return (
-                          <Link
+                          <button
                             key={agent.id}
-                            to={`/agents/${agent.id}`}
-                            className="block w-full px-3 py-3 rounded-xl text-left transition-all border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12]"
+                            type="button"
+                            onClick={() => { setActiveAgentId(agent.id); setActivePanel('agent'); }}
+                            className={`block w-full px-3 py-3 rounded-xl text-left transition-all border ${
+                              isActive ? 'border-purple-500/40 bg-purple-500/10' : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12]'
+                            }`}
                           >
                             <div className="flex items-center gap-3">
                               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradientMap[agent.category] || 'from-purple-500 to-indigo-500'} flex items-center justify-center text-lg shadow-lg`}>
@@ -640,7 +652,7 @@ export default function UnifiedWorkbenchPage() {
                                 </p>
                               </div>
                             </div>
-                          </Link>
+                          </button>
                         );
                       });
                     })()}
@@ -652,6 +664,75 @@ export default function UnifiedWorkbenchPage() {
         </aside>
 
         {/* ───── 中间工作区 ───── */}
+        {activePanel === 'agent' && activeAgentId ? (
+          (() => {
+            const agent = getAgentById(activeAgentId);
+            if (!agent) return null;
+            const gradientMap: Record<string, string> = {
+              chat: 'from-blue-500 to-indigo-500',
+              image: 'from-emerald-400 to-cyan-400',
+              video: 'from-orange-500 to-red-500',
+            };
+            const gradient = gradientMap[agent.category] || 'from-purple-500 to-indigo-500';
+            return (
+              <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
+                {/* 顶栏 */}
+                <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06] flex-shrink-0">
+                  <button
+                    onClick={() => { setActiveAgentId(null); setActivePanel('model'); }}
+                    className="p-2 rounded-lg hover:bg-white/5 text-white/50 hover:text-white transition"
+                  >
+                    <ChevronRight className="w-4 h-4 rotate-180" />
+                  </button>
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-lg shadow-lg`}>
+                    {agent.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-sm font-semibold text-white">{agent.name}</h2>
+                    <p className="text-xs text-white/40 truncate">{agent.description}</p>
+                  </div>
+                  <span className="px-2 py-1 rounded-md text-[10px] bg-purple-500/20 text-purple-300 font-medium">
+                    {agent.category === 'chat' ? '对话' : agent.category === 'image' ? '图片' : '视频'}
+                  </span>
+                </div>
+                {/* 执行区 */}
+                <div className="flex-1 min-h-0">
+                  {agent.category === 'chat' ? (
+                    <AgentChatView agent={agent} />
+                  ) : agent.category === 'image' ? (
+                    <ImageWorkbench model={{ id: agent.model, name: agent.name, description: agent.description, icon: agent.icon, category: 'image', tags: [] }} />
+                  ) : (
+                    <VideoWorkbench model={{ id: agent.model, name: agent.name, description: agent.description, icon: agent.icon, category: 'video', tags: [] }} />
+                  )}
+                </div>
+              </main>
+            );
+          })()
+        ) : activePanel === 'manju' ? (
+          <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.06] flex-shrink-0">
+              <button
+                onClick={() => { setActivePanel('model'); }}
+                className="p-2 rounded-lg hover:bg-white/5 text-white/50 hover:text-white transition"
+              >
+                <ChevronRight className="w-4 h-4 rotate-180" />
+              </button>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold shadow-lg">
+                <Film className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold text-white">漫剧工坊</h2>
+                <p className="text-xs text-white/40 truncate">剧本、角色、分镜、批量生成一体化创作</p>
+              </div>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <Link to="/manju" className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-semibold text-sm shadow-lg hover:scale-105 transition-transform">
+                <Sparkles className="w-4 h-4" />
+                进入漫剧工坊
+              </Link>
+            </div>
+          </main>
+        ) : (
         <main className="flex-1 min-w-0 flex flex-col relative">
           {/* 上 2/3 结果/画布区 */}
           <div
@@ -843,6 +924,7 @@ export default function UnifiedWorkbenchPage() {
             </div>
           )}
         </main>
+        )}
 
         {/* ───── 右侧可折叠任务列表 ───── */}
         <aside
