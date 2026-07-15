@@ -164,7 +164,7 @@ const primaryIcons: Record<string, LucideIcon> = {
 const navItems = [
   { id: 'workbench', label: '工作台', to: '/home' },
   { id: 'manju', label: '漫剧', to: '/manju' },
-  { id: 'agent', label: '智能体', to: '/agent' },
+  { id: 'agent', label: '智能体', to: '/agents' },
   { id: 'profile', label: '个人中心', to: '/profile' },
 ];
 

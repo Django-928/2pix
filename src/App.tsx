@@ -52,6 +52,8 @@ const AdminProfitPage = lazy(() => import('@/pages/admin/AdminProfitPage'));
 const AdminModelsPage = lazy(() => import('@/pages/admin/AdminModelsPage'));
 const AdminRedeemCodesPage = lazy(() => import('@/pages/admin/AdminRedeemCodesPage'));
 const AdminPricingPage = lazy(() => import('@/pages/admin/AdminPricingPage'));
+const AgentListPage = lazy(() => import('@/pages/AgentListPage'));
+const AgentRunPage = lazy(() => import('@/pages/AgentRunPage'));
 
 function LandingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -336,6 +338,9 @@ export default function App() {
         <Route path="/manju" element={<UserRoute><ManjuPage /></UserRoute>} />
 
         <Route path="/agent" element={<UserRoute><AgentCenterPage /></UserRoute>} />
+
+        <Route path="/agents" element={<UserRoute><AgentListPage /></UserRoute>} />
+        <Route path="/agents/:id" element={<UserRoute><AgentRunPage /></UserRoute>} />
 
         <Route path="/aura" element={<AuraPage />} />
 

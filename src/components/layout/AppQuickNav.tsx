@@ -5,7 +5,7 @@ const links = [
   { label: '工作台', href: '/home', icon: Bot },
   { label: '个人中心', href: '/profile', icon: User },
   { label: '漫剧', href: '/manju', icon: Film },
-  { label: '代理商', href: '/agent', icon: Crown },
+  { label: '智能体', href: '/agents', icon: Crown },
   { label: '后台配置', href: '/admin/provider-config', icon: Settings },
 ];
 

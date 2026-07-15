@@ -6,16 +6,22 @@ import db from '../db/index.js';
 const router = express.Router();
 
 router.post('/message', apiKeyOrAuthMiddleware, async (req: Request, res: Response) => {
-  const { messages, model } = req.body;
+  const { messages, model, params } = req.body;
 
   try {
-    const lastMessage = Array.isArray(messages) ? messages[messages.length - 1] : null;
+    // 如果 params.system 存在，在 messages 数组前面插入 system 消息
+    let finalMessages = Array.isArray(messages) ? [...messages] : [];
+    if (params?.system && typeof params.system === 'string') {
+      finalMessages.unshift({ role: 'system', content: params.system });
+    }
+
+    const lastMessage = finalMessages.length > 0 ? finalMessages[finalMessages.length - 1] : null;
     const prompt = typeof lastMessage === 'string' ? lastMessage : lastMessage?.content || '';
     const result = await generateWithProvider({
       category: 'chat',
       localModel: model || 'gpt-5.5',
       prompt,
-      params: { messages },
+      params: { messages: finalMessages },
     });
 
     res.status(200).json({
