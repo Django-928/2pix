@@ -132,7 +132,12 @@ export function AgentChatView({ agent }: { agent: Agent }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const typewriterRef = useRef<(() => void) | null>(null);
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
+
+  useEffect(() => {
+    return () => { typewriterRef.current?.(); };
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -210,7 +215,8 @@ export function AgentChatView({ agent }: { agent: Agent }) {
           setMessages((prev) => [...prev, assistantMsg]);
 
           setTimeout(() => {
-            typewriterEffect(fullContent, assistantId);
+            typewriterRef.current?.();
+            typewriterRef.current = typewriterEffect(fullContent, assistantId);
           }, 100);
         },
       });
@@ -246,7 +252,11 @@ export function AgentChatView({ agent }: { agent: Agent }) {
         description: `${agent.name} 重新生成`,
         onBalanceChange: refreshBalance,
         run: async () => {
-          const apiMessages = messages
+          // 在 run 回调内部重新获取最新 messages，避免过期闭包
+          let latestMessages: typeof messages = [];
+          setMessages(prev => { latestMessages = prev; return prev; });
+
+          const apiMessages = latestMessages
             .filter((m) => m.id !== msgId)
             .map((m) => ({ role: m.role, content: m.content }));
 
@@ -267,7 +277,8 @@ export function AgentChatView({ agent }: { agent: Agent }) {
           setMessages((prev) => [...prev, assistantMsg]);
 
           setTimeout(() => {
-            typewriterEffect(fullContent, assistantId);
+            typewriterRef.current?.();
+            typewriterRef.current = typewriterEffect(fullContent, assistantId);
           }, 100);
         },
       });

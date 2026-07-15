@@ -106,7 +106,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (item.path === '/admin') {
       return location.pathname === '/admin';
     }
-    return location.pathname.startsWith(item.path);
+    return location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path + '/'));
   });
 
   const visibleMenuItems = menuItems.filter((item) =>

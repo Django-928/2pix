@@ -54,7 +54,7 @@ const defaultProviderConfig: ProviderConfig = {
       name: '融川 OneAPI',
       enabled: true,
       baseUrl: 'https://rongchuan.ai',
-      apiKey: 'sk-UC4uuRrD3dvUD1xQomxJhwl0t9PMbviwhL3gvTjBTu4RFL9R',
+      apiKey: '',
       timeoutSeconds: 120,
       costMultiplier: 1,
       models: [

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Send, Loader2, Download, ZoomIn, X, ImagePlus, Wand2, ChevronUp, ImageIcon, RatioIcon, Layers, AlertCircle } from 'lucide-react';
+import { Send, Loader2, Download, ZoomIn, X, ImagePlus, Wand2, ChevronUp, ImageIcon, Proportions, Layers, AlertCircle } from 'lucide-react';
 import type { AIModel } from '@/data/models';
 import { useStore } from '@/store/useStore';
 import { useAccountStore } from '@/store/useAccountStore';
@@ -187,6 +187,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                 style: selectedStyle,
                 resolution: size,
                 seed: Date.now() + i,
+                ...(referenceImages.length > 0 ? { referenceImages } : {}),
               }),
             ),
           );
@@ -422,7 +423,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                             : 'bg-white/[0.03] text-[#71717a] border-white/[0.06] hover:bg-white/[0.06]'
                         }`}
                       >
-                        <RatioIcon className="w-3.5 h-3.5" />
+                        <Proportions className="w-3.5 h-3.5" />
                         {ratio.label}
                       </button>
                     ))}
@@ -475,7 +476,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                       : 'bg-white/[0.03] text-[#71717a] border-white/[0.06] hover:bg-white/[0.06] hover:text-[#a1a1aa]'
                   }`}
                 >
-                  <RatioIcon className="w-3.5 h-3.5" />
+                  <Proportions className="w-3.5 h-3.5" />
                   {aspectRatio}
                   <ChevronUp className={`w-3 h-3 transition-transform ${activeTab === 'ratio' ? 'rotate-180' : ''}`} />
                 </button>

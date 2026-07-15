@@ -301,19 +301,43 @@ export default function UnifiedWorkbenchPage() {
             });
             toast.success(`${activeModel.name} 回复已生成`);
           } else if (category === 'image') {
+            const count = parseInt(paramSelections['count'] || '1');
+            const advanced = paramSelections['advanced'] || null;
+            const advancedResolutionMap: Record<string, string> = {
+              hd: '1024x1024',
+              fast: '480x480',
+              raw: ratio === '1:1' ? '1024x1024' : ratio === '16:9' ? '1792x1024' : '1024x1792',
+              quality: ratio === '1:1' ? '1024x1024' : ratio === '16:9' ? '1792x1024' : '1024x1792',
+            };
+            const effectiveResolution = advanced && advancedResolutionMap[advanced]
+              ? advancedResolutionMap[advanced]
+              : ratio === '1:1' ? '1024x1024' : ratio === '16:9' ? '1792x1024' : '1024x1792';
             result = await api.post('/image/generate', {
               prompt,
               model: activeModel.id,
               style,
-              resolution: ratio === '1:1' ? '1024x1024' : ratio === '16:9' ? '1792x1024' : '1024x1792',
+              resolution: effectiveResolution,
+              count,
+              ...(advanced ? { advanced } : {}),
             });
             toast.success(`${activeModel.name} 图片已生成`);
           } else if (category === 'video') {
+            const advanced = paramSelections['advanced'] || null;
+            const advancedVideoResolutionMap: Record<string, string> = {
+              hd: '1080p',
+              fast: '480p',
+              raw: '720p',
+              quality: '1080p',
+            };
+            const effectiveResolution = advanced && advancedVideoResolutionMap[advanced]
+              ? advancedVideoResolutionMap[advanced]
+              : '720p';
             result = await api.post('/video/generate', {
               prompt,
               model: activeModel.id,
               aspectRatio: ratio,
               duration: quality === 'quality' ? '10' : '5',
+              resolution: effectiveResolution,
             });
             toast.success(`${activeModel.name} 视频已提交生成`);
           } else {

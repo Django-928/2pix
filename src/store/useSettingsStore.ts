@@ -152,4 +152,9 @@ export const useSettingsStore = create<SettingsState>()(
   ),
 );
 
+// 初始化时同步到 DOM（zustand persist 从 localStorage 恢复 state 后不会触发 setter）
+const initialSettings = useSettingsStore.getState();
+applyThemeToDOM(initialSettings.theme);
+applyLanguageToDOM(initialSettings.language);
+
 export default useSettingsStore;

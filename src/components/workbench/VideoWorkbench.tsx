@@ -255,6 +255,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setBillingError('');
+    setGeneratedVideo(null);
     setIsGenerating(true);
     setProgress(0);
 
@@ -281,6 +282,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
             resolution,
             duration,
             aspectRatio,
+            ...(referenceImages.length > 0 ? { referenceImages } : {}),
           });
           if (result.url) {
             setGeneratedVideo(result.url);

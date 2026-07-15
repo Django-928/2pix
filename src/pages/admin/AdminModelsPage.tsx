@@ -231,7 +231,7 @@ export default function AdminModelsPage() {
 
   /** 检测 provider 中有但 ai_models 表中还没有的模型 */
   const importableModels = useMemo(() => {
-    if (!providerConfig || models.length > 0) return [];
+    if (!providerConfig) return [];
     const existingIds = new Set(models.map((m) => m.id));
     const importable: { localModel: string; category: string }[] = [];
     for (const provider of providerConfig.providers) {
@@ -340,8 +340,8 @@ export default function AdminModelsPage() {
           icon: formData.icon,
           category: formData.category,
           sort_order: formData.sort_order,
-          is_new: formData.is_new,
-          is_hot: formData.is_hot,
+          is_new: formData.is_new ? 1 : 0,
+          is_hot: formData.is_hot ? 1 : 0,
         });
       } else {
         await api.post('/admin/models', {
@@ -351,8 +351,8 @@ export default function AdminModelsPage() {
           icon: formData.icon || '✨',
           category: formData.category,
           sort_order: formData.sort_order,
-          is_new: formData.is_new,
-          is_hot: formData.is_hot,
+          is_new: formData.is_new ? 1 : 0,
+          is_hot: formData.is_hot ? 1 : 0,
         });
       }
       setShowModal(false);
@@ -377,7 +377,6 @@ export default function AdminModelsPage() {
   };
 
   const handleDelete = async (model: Model) => {
-    if (!confirm(`确定要删除模型 "${model.name}" 吗？删除后将变为下线状态。`)) return;
     setSubmitting(true);
     try {
       await api.delete(`/admin/models/${model.id}`);

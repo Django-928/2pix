@@ -288,6 +288,11 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef(false);
   const streamContentRef = useRef('');
+  const typewriterRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => { typewriterRef.current?.(); };
+  }, []);
 
   const { conversations, currentConversationId, createConversation, selectConversation, addMessage } =
     useStore();
@@ -435,7 +440,8 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
 
           // 开始打字机效果
           setTimeout(() => {
-            typewriterEffect(fullContent, currentConversationId!, assistantId);
+            typewriterRef.current?.();
+            typewriterRef.current = typewriterEffect(fullContent, currentConversationId!, assistantId);
           }, 100);
         },
       });
@@ -508,7 +514,8 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
           addMessage(currentConversationId!, assistantMessage);
 
           setTimeout(() => {
-            typewriterEffect(fullContent, currentConversationId!, assistantId);
+            typewriterRef.current?.();
+            typewriterRef.current = typewriterEffect(fullContent, currentConversationId!, assistantId);
           }, 100);
         },
       });

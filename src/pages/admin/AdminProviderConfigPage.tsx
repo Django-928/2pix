@@ -358,15 +358,6 @@ export default function AdminProviderConfigPage() {
                   API Key
                   <div className="flex gap-2">
                     <input type="password" className={`${inputClass} flex-1`} value={selectedProvider.apiKey} onChange={(e) => updateProvider({ apiKey: e.target.value })} placeholder="粘贴 API Key，留空保留原密钥" />
-                    <button
-                      onClick={testConnection}
-                      disabled={testing || !selectedProvider.baseUrl || !selectedProvider.apiKey}
-                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/20 px-3 py-2.5 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/10 disabled:opacity-40"
-                      title="一键测试连接"
-                    >
-                      {testing ? <Loader2 size={16} className="animate-spin" /> : <Wifi size={16} />}
-                      测试
-                    </button>
                   </div>
                 </div>
                 {/* 连接测试结果 */}
