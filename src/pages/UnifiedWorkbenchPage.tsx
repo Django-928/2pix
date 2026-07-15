@@ -30,6 +30,8 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { aiModels as defaultModels, primaryCategories, secondaryCategories } from '@/data/models';
 import type { AIModel } from '@/data/models';
+import { agents as agentList } from '@/data/agents';
+import type { Agent } from '@/data/agents';
 import { useStore } from '@/store/useStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import useAuthStore from '@/store/useAuthStore';
@@ -582,27 +584,67 @@ export default function UnifiedWorkbenchPage() {
                 ))}
 
                 {primaryTab === 'zhinengti' && (
-                  <Link
-                    to="/manju"
-                    className="block w-full px-3 py-3 rounded-xl text-left transition-all border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold shadow-lg">
-                        <Film className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white truncate">漫剧工坊</span>
-                          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-white/10 text-white/70">
-                            入口
-                          </span>
+                  <>
+                    {/* 漫剧工坊入口 */}
+                    <Link
+                      to="/manju"
+                      className="block w-full px-3 py-3 rounded-xl text-left transition-all border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-bold shadow-lg">
+                          <Film className="w-4 h-4" />
                         </div>
-                        <p className="text-xs text-white/40 truncate mt-0.5">
-                          剧本、角色、分镜、批量生成一体化创作
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-white truncate">漫剧工坊</span>
+                            <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-white/10 text-white/70">
+                              入口
+                            </span>
+                          </div>
+                          <p className="text-xs text-white/40 truncate mt-0.5">
+                            剧本、角色、分镜、批量生成一体化创作
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                    {/* 工作流Agent列表 */}
+                    {(() => {
+                      const filtered = secondaryTab === 'all'
+                        ? agentList
+                        : agentList.filter((a: Agent) => a.category === secondaryTab);
+                      return filtered.map((agent: Agent) => {
+                        const gradientMap: Record<string, string> = {
+                          chat: 'from-blue-500 to-indigo-500',
+                          image: 'from-emerald-400 to-cyan-400',
+                          video: 'from-orange-500 to-red-500',
+                        };
+                        return (
+                          <Link
+                            key={agent.id}
+                            to={`/agents/${agent.id}`}
+                            className="block w-full px-3 py-3 rounded-xl text-left transition-all border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradientMap[agent.category] || 'from-purple-500 to-indigo-500'} flex items-center justify-center text-lg shadow-lg`}>
+                                {agent.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-white truncate">{agent.name}</span>
+                                  <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-purple-500/20 text-purple-300">
+                                    工作流
+                                  </span>
+                                </div>
+                                <p className="text-xs text-white/40 truncate mt-0.5">
+                                  {agent.description}
+                                </p>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      });
+                    })()}
+                  </>
                 )}
               </>
             )}
