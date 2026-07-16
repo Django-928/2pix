@@ -10,6 +10,7 @@ import {
   Check,
   Square,
   Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -21,6 +22,7 @@ import VideoWorkbench from '@/components/workbench/VideoWorkbench';
 import api from '@/utils/api';
 import { getEstimatedCost, runBillableTask } from '@/utils/billing';
 import { useAccountStore } from '@/store/useAccountStore';
+import { useStore } from '@/store/useStore';
 
 /* ── 简单的 Markdown 渲染 ── */
 function MarkdownContent({ content }: { content: string }) {
@@ -125,19 +127,57 @@ function MarkdownContent({ content }: { content: string }) {
 
 /* ── Chat 类型智能体的轻量聊天界面 ── */
 export function AgentChatView({ agent }: { agent: Agent }) {
+  const conversations = useStore((s) => s.conversations);
+  const loadConversations = useStore((s) => s.loadConversations);
+  const createConversation = useStore((s) => s.createConversation);
+  const addMessage = useStore((s) => s.addMessage);
+  const [convId, setConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string }>>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [billingError, setBillingError] = useState('');
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typewriterRef = useRef<(() => void) | null>(null);
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
 
+  // 初始化：查找或创建当前Agent的conversation
   useEffect(() => {
-    return () => { typewriterRef.current?.(); };
-  }, []);
+    let cancelled = false;
+    const init = async () => {
+      setIsLoadingHistory(true);
+      try {
+        // 确保conversations已加载
+        if (conversations.length === 0) {
+          await loadConversations();
+        }
+        if (cancelled) return;
+
+        // 按 agent.id 查找已有对话
+        const state = useStore.getState();
+        const existing = state.conversations.find((c) => c.model === `agent:${agent.id}`);
+        if (existing) {
+          setConvId(existing.id);
+          setMessages(existing.messages.map((m) => ({ id: m.id, role: m.role as 'user' | 'assistant', content: m.content })));
+        } else {
+          // 创建新对话
+          const newConv = await createConversation(`${agent.name}`, `agent:${agent.id}`);
+          if (!cancelled) {
+            setConvId(newConv.id);
+            setMessages([]);
+          }
+        }
+      } catch {
+        // 静默失败
+      } finally {
+        if (!cancelled) setIsLoadingHistory(false);
+      }
+    };
+    init();
+    return () => { cancelled = true; typewriterRef.current?.(); };
+  }, [agent.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -182,6 +222,11 @@ export function AgentChatView({ agent }: { agent: Agent }) {
     const userMsg = { id: `msg-${Date.now()}`, role: 'user' as const, content };
     setMessages((prev) => [...prev, userMsg]);
 
+    // 持久化用户消息到 conversation
+    if (convId) {
+      addMessage(convId, { id: userMsg.id, role: 'user', content, createdAt: new Date().toISOString() });
+    }
+
     setIsTyping(true);
     abortRef.current = false;
 
@@ -213,6 +258,11 @@ export function AgentChatView({ agent }: { agent: Agent }) {
             content: '',
           };
           setMessages((prev) => [...prev, assistantMsg]);
+
+          // 持久化AI回复到 conversation
+          if (convId) {
+            addMessage(convId, { id: assistantId, role: 'assistant', content: fullContent, createdAt: new Date().toISOString() });
+          }
 
           setTimeout(() => {
             typewriterRef.current?.();
@@ -295,14 +345,23 @@ export function AgentChatView({ agent }: { agent: Agent }) {
     el.style.height = Math.min(el.scrollHeight, 200) + 'px';
   };
 
-  const hasMessages = messages.length > 0;
+  const hasMessages = messages.length > 0 || isLoadingHistory;
 
   return (
     <div className="flex flex-col h-full" style={{ background: '#0a0a0a' }}>
       {/* 消息列表 */}
       {hasMessages && (
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
-          {messages.map((msg) => (
+          {isLoadingHistory ? (
+            <div className="flex items-center justify-center h-full text-white/30 text-sm gap-2">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              加载对话历史...
+            </div>
+          ) : messages.length === 0 && !isTyping ? (
+            null
+          ) : (
+            <>
+              {messages.map((msg) => (
             <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div
                 className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
@@ -392,6 +451,8 @@ export function AgentChatView({ agent }: { agent: Agent }) {
             </div>
           )}
           <div ref={messagesEndRef} />
+            </>
+          )}
         </div>
       )}
 
