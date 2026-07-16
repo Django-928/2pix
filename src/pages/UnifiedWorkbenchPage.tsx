@@ -232,6 +232,7 @@ export default function UnifiedWorkbenchPage() {
   const balance = useAccountStore((s) => s.balance);
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
   const projects = useStore((s) => s.projects);
+  const conversations = useStore((s) => s.conversations);
   const toast = useToast();
   const displayName = authUser?.nickname || authUser?.username || '用户';
   const avatarText = displayName.slice(0, 1).toUpperCase();
@@ -995,11 +996,53 @@ export default function UnifiedWorkbenchPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                {activeModel.category === 'chat' ? (
-                  <div className="text-center py-10">
-                    <Clock className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                    <p className="text-white/40 text-xs">聊天模型暂无生成任务</p>
-                  </div>
+                {(activePanel === 'agent' && activeAgentId) || activeModel.category === 'chat' ? (
+                  // 聊天/Agent模式：显示对话历史
+                  (() => {
+                    const modelFilter = activePanel === 'agent' && activeAgentId
+                      ? `agent:${activeAgentId}`
+                      : activeModel.id;
+                    const filtered = conversations
+                      .filter((c) => c.model === modelFilter)
+                      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="text-center py-10">
+                          <Clock className="w-8 h-8 text-white/20 mx-auto mb-2" />
+                          <p className="text-white/40 text-xs">暂无对话记录</p>
+                          <p className="text-white/25 text-xs mt-1">开始对话后记录会出现在这里</p>
+                        </div>
+                      );
+                    }
+                    return filtered.map((conv) => {
+                      const lastMsg = conv.messages[conv.messages.length - 1];
+                      return (
+                        <div
+                          key={conv.id}
+                          className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.10] transition cursor-default"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-white truncate">
+                                {conv.title}
+                              </p>
+                              {lastMsg && (
+                                <p className="text-[10px] text-white/40 mt-1 line-clamp-2">
+                                  {lastMsg.role === 'user' ? '你：' : 'AI：'}{lastMsg.content.slice(0, 60)}
+                                </p>
+                              )}
+                              <p className="text-[10px] text-white/25 mt-1">
+                                {new Date(conv.updatedAt).toLocaleString()}
+                              </p>
+                            </div>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md border bg-blue-500/10 text-blue-300 border-blue-500/20 flex-shrink-0">
+                              {conv.messages.length} 条消息
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()
                 ) : filteredTasks.length === 0 ? (
                   <div className="text-center py-10">
                     <Clock className="w-8 h-8 text-white/20 mx-auto mb-2" />
