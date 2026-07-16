@@ -44,6 +44,23 @@ export async function runBillableTask<T>({
 }
 
 /**
+ * 同步本地估算（仅用于 UI 展示提示，不参与实际扣费）
+ */
+export function getEstimatedCostSync(
+  category: string,
+  quantity = 1,
+  duration = 1,
+): number {
+  switch (category) {
+    case 'chat':   return Math.max(1, quantity) * 5;
+    case 'image':  return Math.max(1, quantity) * 10;
+    case 'video':  return Math.max(1, duration) * 20;
+    case 'audio':  return Math.max(1, quantity) * 6;
+    default:      return Math.max(1, quantity);
+  }
+}
+
+/**
  * 调用后端定价 API 获取准确的预估消耗积分
  */
 export async function fetchEstimatedCost(
@@ -62,28 +79,30 @@ export async function fetchEstimatedCost(
     return data.estimated_cost;
   } catch {
     // 接口不可用时回退到本地估算
-    return getEstimatedCost(category);
+    return getEstimatedCostSync(category);
   }
 }
 
 /**
- * 本地估算消耗积分（fallback，当定价 API 不可用时使用）
+ * 本地估算消耗积分（优先调后端 API，不可用时 fallback）
  */
-export function getEstimatedCost(
+export async function getEstimatedCost(
   category: string,
   quantity = 1,
   duration = 1,
-): number {
-  switch (category) {
-    case 'chat':
-      return Math.max(1, quantity);
-    case 'image':
-      return Math.max(1, quantity) * 12;
-    case 'video':
-      return Math.max(1, duration) * 8;
-    case 'audio':
-      return Math.max(1, quantity) * 6;
-    default:
-      return Math.max(1, quantity);
+  model?: string,
+): Promise<number> {
+  try {
+    const params = new URLSearchParams({
+      category,
+      quantity: String(quantity),
+      duration: String(duration),
+      model: model || 'default',
+    });
+    const result = await api.get<{ credits: number }>(`/pricing/estimate?${params.toString()}`);
+    return Math.max(1, Math.ceil(result.credits || 0));
+  } catch {
+    // fallback
+    return getEstimatedCostSync(category, quantity, duration);
   }
 }

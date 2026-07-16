@@ -291,7 +291,7 @@ export default function UnifiedWorkbenchPage() {
       await runBillableTask({
         model: activeModel.id,
         category,
-        estimatedCost: getEstimatedCost(category),
+        estimatedCost: await getEstimatedCost(category),
         description: `工作台 ${activeModel.name} 生成`,
         onBalanceChange: refreshBalance,
         run: async () => {

@@ -91,7 +91,7 @@ export default function AudioGeneratorPage() {
       await runBillableTask({
         model: 'openai-tts',
         category: 'audio',
-        estimatedCost: getEstimatedCost('audio', 1),
+        estimatedCost: await getEstimatedCost('audio', 1),
         description: '独立音频页语音生成',
         onBalanceChange: refreshBalance,
         run: async () => {
@@ -127,7 +127,7 @@ export default function AudioGeneratorPage() {
       await runBillableTask({
         model: 'suno-v4-5',
         category: 'audio',
-        estimatedCost: getEstimatedCost('audio', 1),
+        estimatedCost: await getEstimatedCost('audio', 1),
         description: '独立音频页音乐生成',
         onBalanceChange: refreshBalance,
         run: async () => {

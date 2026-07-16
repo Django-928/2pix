@@ -77,11 +77,7 @@ const defaultProviderConfig: ProviderConfig = {
       timeoutSeconds: 300,
       costMultiplier: 1,
       models: [
-        // Chat 模型
-        { localModel: 'claude-opus-4', upstreamModel: 'claude-opus-4-7', category: 'chat', enabled: true },
-        { localModel: 'claude-sonnet-4', upstreamModel: 'claude-sonnet-4-6', category: 'chat', enabled: true },
-        { localModel: 'claude-haiku-4-5', upstreamModel: 'claude-haiku-4-5', category: 'chat', enabled: true },
-        { localModel: 'gpt-5-5', upstreamModel: 'gpt-5-5', category: 'chat', enabled: true },
+        // KIE 专注 image/video，chat 统一走融川
         // Image 模型
         { localModel: 'gpt-image-2', upstreamModel: 'gpt-image-2', category: 'image', enabled: true },
         { localModel: 'seedream-4', upstreamModel: 'bytedance/seedream-v4-text-to-image', category: 'image', enabled: true },
@@ -132,24 +128,34 @@ function readProviderConfig(): ProviderConfig {
 function resolveProvider(localModel: string, category: ProviderCategory) {
   const config = readProviderConfig();
   const enabledProviders = config.providers.filter((item) => item.enabled && item.apiKey && item.baseUrl);
-  const preferred = enabledProviders.find((item) => item.name === config.activeProvider || item.id === config.activeProvider) || enabledProviders[0];
-  if (!preferred) return null;
+  if (enabledProviders.length === 0) return null;
 
-  const mapping = preferred.models.find((item) =>
-    item.enabled &&
-    item.category === category &&
-    (item.localModel === localModel || localModel.includes(item.localModel))
-  );
+  // 如果指定了 activeProvider，优先在该 provider 中查找
+  if (config.activeProvider) {
+    const preferred = enabledProviders.find(
+      (item) => item.name === config.activeProvider || item.id === config.activeProvider
+    );
+    if (preferred) {
+      const mapping = preferred.models.find(
+        (item) => item.enabled && item.category === category && (item.localModel === localModel || localModel.includes(item.localModel))
+      );
+      if (mapping) {
+        return { provider: preferred, mapping };
+      }
+    }
+  }
 
-  return {
-    provider: preferred,
-    mapping: mapping || {
-      localModel,
-      upstreamModel: localModel,
-      category,
-      enabled: true,
-    },
-  };
+  // 在所有 enabled providers 中查找第一个有该模型映射的
+  for (const p of enabledProviders) {
+    const mapping = p.models.find(
+      (item) => item.enabled && item.category === category && (item.localModel === localModel || localModel.includes(item.localModel))
+    );
+    if (mapping) {
+      return { provider: p, mapping };
+    }
+  }
+
+  return null;
 }
 
 function extractUrl(raw: unknown): string | undefined {

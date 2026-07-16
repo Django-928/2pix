@@ -411,7 +411,7 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
       await runBillableTask({
         model: model.id,
         category: 'chat',
-        estimatedCost: getEstimatedCost('chat', Math.ceil(contentToSend.length / 800)),
+        estimatedCost: await getEstimatedCost('chat', Math.ceil(contentToSend.length / 800)),
         description: `${model.name} 聊天回复`,
         onBalanceChange: refreshBalance,
         run: async () => {
@@ -492,7 +492,7 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
       await runBillableTask({
         model: model.id,
         category: 'chat',
-        estimatedCost: getEstimatedCost('chat', Math.ceil(lastUserMsgContent.length / 800)),
+        estimatedCost: await getEstimatedCost('chat', Math.ceil(lastUserMsgContent.length / 800)),
         description: `${model.name} 重新生成`,
         onBalanceChange: refreshBalance,
         run: async () => {

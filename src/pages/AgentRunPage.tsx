@@ -234,7 +234,7 @@ export function AgentChatView({ agent }: { agent: Agent }) {
       await runBillableTask({
         model: agent.model,
         category: 'chat',
-        estimatedCost: getEstimatedCost('chat', Math.ceil(content.length / 800)),
+        estimatedCost: await getEstimatedCost('chat', Math.ceil(content.length / 800)),
         description: `${agent.name} 聊天回复`,
         onBalanceChange: refreshBalance,
         run: async () => {
@@ -298,7 +298,7 @@ export function AgentChatView({ agent }: { agent: Agent }) {
       await runBillableTask({
         model: agent.model,
         category: 'chat',
-        estimatedCost: getEstimatedCost('chat', Math.ceil(lastUserContent.length / 800)),
+        estimatedCost: await getEstimatedCost('chat', Math.ceil(lastUserContent.length / 800)),
         description: `${agent.name} 重新生成`,
         onBalanceChange: refreshBalance,
         run: async () => {

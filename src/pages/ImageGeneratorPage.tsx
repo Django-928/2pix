@@ -63,7 +63,7 @@ export default function ImageGeneratorPage() {
       await runBillableTask({
         model,
         category: 'image',
-        estimatedCost: getEstimatedCost('image', 1),
+        estimatedCost: await getEstimatedCost('image', 1),
         description: `独立生图页 ${model} 图片生成`,
         onBalanceChange: refreshBalance,
         run: async () => {

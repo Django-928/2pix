@@ -175,7 +175,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
       await runBillableTask({
         model: model.id,
         category: 'image',
-        estimatedCost: getEstimatedCost('image', numImages),
+        estimatedCost: await getEstimatedCost('image', numImages),
         description: `${model.name} 图片生成 ${numImages} 张`,
         onBalanceChange: refreshBalance,
         run: async () => {

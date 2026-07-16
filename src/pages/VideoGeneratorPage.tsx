@@ -509,7 +509,7 @@ export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPa
       await runBillableTask({
         model: activeModel.id,
         category: 'video',
-        estimatedCost: getEstimatedCost('video', 1, Number.parseInt(params.duration || '6', 10) || 6),
+        estimatedCost: await getEstimatedCost('video', 1, Number.parseInt(params.duration || '6', 10) || 6),
         description: `独立视频页 ${activeModel.name} 视频生成`,
         taskId,
         onBalanceChange: refreshBalance,

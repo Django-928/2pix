@@ -229,7 +229,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
       await runBillableTask({
         model: model.id,
         category: 'audio',
-        estimatedCost: getEstimatedCost('audio', numAudio),
+        estimatedCost: await getEstimatedCost('audio', numAudio),
         description: `${model.name} 音频生成`,
         onBalanceChange: refreshBalance,
         run: async () => {

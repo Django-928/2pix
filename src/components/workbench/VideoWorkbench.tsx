@@ -12,7 +12,7 @@ import type { AIModel } from '@/data/models';
 import { useStore } from '@/store/useStore';
 import { useAccountStore } from '@/store/useAccountStore';
 import api from '@/utils/api';
-import { getEstimatedCost, runBillableTask } from '@/utils/billing';
+import { getEstimatedCost, getEstimatedCostSync, runBillableTask } from '@/utils/billing';
 import { pollKieTask } from '@/utils/kieTaskPolling';
 import { useToast } from '@/components/ui/Toast';
 import { ModelLogo, DescriptionCard, ParamCapsule, SendButton, CostHint } from './shared';
@@ -272,7 +272,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
       await runBillableTask({
         model: model.id,
         category: 'video',
-        estimatedCost: getEstimatedCost('video', numVideos, Number(duration) || 5),
+        estimatedCost: await getEstimatedCost('video', numVideos, Number(duration) || 5),
         description: `${model.name} 视频生成 ${duration} 秒`,
         onBalanceChange: refreshBalance,
         run: async () => {
@@ -609,7 +609,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
 
               <div className="flex items-center gap-3">
                 <CostHint
-                  text={`预计 ${getEstimatedCost('video', numVideos, Number(duration) || 5).toFixed(4)}/秒`}
+                  text={`预计 ${getEstimatedCostSync('video', numVideos, Number(duration) || 5).toFixed(4)}/秒`}
                 />
                 <SendButton
                   onClick={handleGenerate}

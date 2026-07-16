@@ -66,7 +66,7 @@ export default function ChatPage() {
       await runBillableTask({
         model: currentModel,
         category: 'chat',
-        estimatedCost: getEstimatedCost('chat', Math.ceil(content.length / 800)),
+        estimatedCost: await getEstimatedCost('chat', Math.ceil(content.length / 800)),
         description: `独立聊天页 ${currentModel} 回复`,
         onBalanceChange: refreshBalance,
         run: async () => {
