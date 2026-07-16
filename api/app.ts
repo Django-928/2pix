@@ -9,6 +9,8 @@ import dotenv from 'dotenv'
 import swaggerUi from 'swagger-ui-express'
 import swaggerSpec from './swagger.js'
 import initDatabase from './db/init.js'
+import db from './db/index.js'
+import { initCleanupService } from './services/cleanupService.js'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
@@ -50,6 +52,7 @@ import kieTaskRoutes from './routes/kieTasks.js'
 dotenv.config()
 
 initDatabase()
+initCleanupService(db)
 
 const app: express.Application = express()
 

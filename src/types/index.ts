@@ -5,6 +5,8 @@ export interface Project {
   status: 'pending' | 'complete' | 'failed';
   inputParams: Record<string, unknown>;
   outputUrl?: string;
+  provider?: string;
+  model?: string;
   createdAt: string;
 }
 

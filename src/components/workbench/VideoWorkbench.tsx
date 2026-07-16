@@ -222,7 +222,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
   const [progress, setProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const addProject = useStore((s) => s.addProject);
+  const loadProjects = useStore((s) => s.loadProjects);
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
   const toast = useToast();
 
@@ -336,14 +336,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
             setGeneratedVideos((prev) => [newVideoItem, ...prev]);
           }
 
-          addProject({
-            id: `proj-${Date.now()}`,
-            name: prompt.substring(0, 30) + (prompt.length > 30 ? '...' : ''),
-            type: 'video',
-            status: 'complete',
-            inputParams: { prompt, resolution, duration, aspectRatio, numVideos, cameraMove },
-            createdAt: new Date().toISOString(),
-          });
+          loadProjects();
         },
       });
     } catch (error) {

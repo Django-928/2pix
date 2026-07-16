@@ -26,10 +26,12 @@ import {
   Gauge,
   HelpCircle,
   RefreshCw,
+  X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { aiModels as defaultModels, primaryCategories, secondaryCategories } from '@/data/models';
 import type { AIModel } from '@/data/models';
+import type { Project } from '@/types';
 import { agents as agentList, getAgentById } from '@/data/agents';
 import type { Agent } from '@/data/agents';
 import { AgentChatView } from '@/pages/AgentRunPage';
@@ -203,6 +205,7 @@ export default function UnifiedWorkbenchPage() {
   const generateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<'model' | 'manju' | 'agent'>('model');
+  const [previewTask, setPreviewTask] = useState<Project | null>(null);
 
   /* ───── 挂载时从 API 拉取模型列表，失败时静默回退 ───── */
   useEffect(() => {
@@ -1053,17 +1056,27 @@ export default function UnifiedWorkbenchPage() {
                   filteredTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.10] transition"
+                      className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.10] transition cursor-pointer"
+                      onClick={() => setPreviewTask(task)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2.5 min-w-0">
+                          {task.outputUrl && (
+                            <img
+                              src={task.outputUrl}
+                              alt={task.name}
+                              className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-white/[0.08]"
+                            />
+                          )}
+                          {!task.outputUrl && (
                           <div
                             className={`w-8 h-8 rounded-lg bg-gradient-to-br ${getModelGradient(
                               activeModel.category
-                            )} flex items-center justify-center text-[10px] font-bold shadow-md`}
+                            )} flex items-center justify-center text-[10px] font-bold shadow-md flex-shrink-0`}
                           >
                             {activeModel.icon}
                           </div>
+                          )}
                           <div className="min-w-0">
                             <p className="text-xs font-semibold text-white truncate max-w-[110px]">
                               {task.name}
@@ -1107,6 +1120,46 @@ export default function UnifiedWorkbenchPage() {
           )}
         </aside>
       </div>
+
+      {/* ───── 任务预览 Modal ───── */}
+      {previewTask && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setPreviewTask(null)}
+        >
+          <div
+            className="relative max-w-3xl max-h-[85vh] w-full mx-4 bg-[#1a1a1e] rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 关闭按钮 */}
+            <button onClick={() => setPreviewTask(null)} className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition">
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* 内容区 */}
+            <div className="p-6 overflow-y-auto max-h-[85vh]">
+              {previewTask.outputUrl && previewTask.type === 'image' && (
+                <img src={previewTask.outputUrl} alt={previewTask.name} className="w-full rounded-xl" />
+              )}
+              {previewTask.outputUrl && previewTask.type === 'video' && (
+                <video src={previewTask.outputUrl} controls className="w-full rounded-xl" />
+              )}
+              {!previewTask.outputUrl && (
+                <div className="text-center py-12 text-white/40">暂无生成结果</div>
+              )}
+              <div className="mt-4 space-y-2">
+                <h3 className="text-sm font-semibold text-white">{previewTask.name}</h3>
+                <div className="flex gap-2 text-[10px] text-white/40">
+                  <span className="px-2 py-0.5 rounded bg-white/[0.06]">{previewTask.type}</span>
+                  {previewTask.model && <span className="px-2 py-0.5 rounded bg-white/[0.06]">{previewTask.model}</span>}
+                  {previewTask.provider && <span className="px-2 py-0.5 rounded bg-white/[0.06]">{previewTask.provider}</span>}
+                </div>
+                <p className="text-xs text-white/30">{new Date(previewTask.createdAt).toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

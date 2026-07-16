@@ -46,7 +46,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     params.push('violated');
 
     const rows = db.prepare(`
-      SELECT id, name, type, status, input_params, output_url, created_at, review_status
+      SELECT id, name, type, status, input_params, output_url, provider, model, created_at, review_status
       FROM works
       ${where}
       ORDER BY created_at DESC, id DESC

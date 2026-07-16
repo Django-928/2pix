@@ -88,7 +88,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<string>>(new Set());
   const [pollingProgress, setPollingProgress] = useState<Record<string, number>>({});
 
-  const { addProject } = useStore();
+  const { loadProjects } = useStore();
   const { refreshBalance } = useAccountStore();
   const toast = useToast();
 
@@ -222,14 +222,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             pollAndResolveTask(entry.taskId, entry.index);
           });
 
-          addProject({
-            id: `proj-${Date.now()}`,
-            name: prompt.substring(0, 30) + (prompt.length > 30 ? '...' : ''),
-            type: 'image',
-            status: 'complete',
-            inputParams: { prompt, size, style: selectedStyle, numImages },
-            createdAt: new Date().toISOString(),
-          });
+          loadProjects();
         },
       });
     } catch (error) {

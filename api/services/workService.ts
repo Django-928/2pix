@@ -22,6 +22,8 @@ export interface WorkRow {
   status: WorkStatus;
   input_params: string;
   output_url: string | null;
+  provider?: string | null;
+  model?: string | null;
   review_status?: string;
   created_at: string;
 }
@@ -71,6 +73,8 @@ export function mapWork(row: WorkRow) {
     status: row.status,
     inputParams,
     outputUrl: row.output_url || undefined,
+    provider: row.provider || undefined,
+    model: row.model || undefined,
     reviewStatus: row.review_status || 'pending',
     createdAt: row.created_at,
   };
