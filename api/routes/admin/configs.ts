@@ -432,9 +432,20 @@ router.post('/providers/test-connection', requirePermission('system:config'), as
       return;
     }
 
-    // 3. 智能处理 baseUrl，确保最终请求 /v1/models
-    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-    const modelsUrl = baseUrl.endsWith('/v1') ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
+    // 3. 根据平台类型选择测试端点
+    let testUrl: string;
+    let expectedJson = true;
+    const isKie = provider.id === 'kie-ai' || (baseUrl as string).includes('kie.ai');
+
+    if (isKie) {
+      // KIE 使用 /api/v1/jobs/createTask 的 GET 测试，或简单请求根路径验证连通性
+      // KIE 没有 /v1/models 端点，用一个轻量级请求验证 API Key 是否有效
+      testUrl = `${baseUrl}/api/v1/jobs/recordInfo?taskId=test-connectivity-check`;
+    } else {
+      // OpenAI 兼容平台使用 /v1/models
+      if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+      testUrl = baseUrl.endsWith('/v1') ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
+    }
 
     // 4. 调用上游 API（10 秒超时）
     const controller = new AbortController();
@@ -443,7 +454,7 @@ router.post('/providers/test-connection', requirePermission('system:config'), as
 
     let response: globalThis.Response;
     try {
-      response = await fetch(modelsUrl, {
+      response = await fetch(testUrl, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -474,11 +485,29 @@ router.post('/providers/test-connection', requirePermission('system:config'), as
       return;
     }
 
-    // 5. 解析 OpenAI 标准格式
-    const body = (await response.json()) as { data?: Array<{ id: string; object?: string; owned_by?: string }> };
-    if (!Array.isArray(body.data)) {
-      res.status(502).json({ success: false, error: '上游返回的模型列表格式异常，缺少 data 字段' });
-      return;
+    // 5. 解析响应
+    let modelCount = 0;
+    const rawBody = await response.json().catch(() => null);
+
+    if (isKie) {
+      // KIE 返回 { code: 200, ... } 格式
+      // 只要不是 401/403，就说明 API Key 有效、网络连通
+      if (rawBody && typeof rawBody === 'object' && 'code' in rawBody) {
+        const code = (rawBody as { code: number }).code;
+        if (code === 401 || code === 403) {
+          res.status(401).json({ success: false, error: 'API Key 无效或权限不足' });
+          return;
+        }
+        modelCount = -1; // KIE 不返回模型列表数量
+      }
+    } else {
+      // OpenAI 兼容格式
+      const body = rawBody as { data?: Array<{ id: string; object?: string; owned_by?: string }> };
+      if (!Array.isArray(body.data)) {
+        res.status(502).json({ success: false, error: '上游返回的模型列表格式异常，缺少 data 字段' });
+        return;
+      }
+      modelCount = body.data.length;
     }
 
     // 6. 记录操作日志
@@ -489,13 +518,17 @@ router.post('/providers/test-connection', requirePermission('system:config'), as
       'system',
       getClientIp(req),
       req.headers['user-agent'] || '',
-      { providerId, modelCount: body.data.length, latency }
+      { providerId, modelCount, latency }
     );
 
     // 7. 返回测试结果
+    const resultMessage = modelCount === -1
+      ? `连接成功！API Key 有效（KIE 平台）`
+      : `连接成功！共发现 ${modelCount} 个可用模型`;
     res.json({
       success: true,
-      modelCount: body.data.length,
+      message: resultMessage,
+      modelCount,
       latency,
     });
   } catch (error) {
@@ -557,7 +590,18 @@ router.post('/providers/sync-models', requirePermission('system:config'), async 
       return;
     }
 
-    // 3. 智能处理 baseUrl，确保最终请求 /v1/models
+    // 3. 根据平台类型选择端点
+    const isKie = provider.id === 'kie-ai' || (baseUrl as string).includes('kie.ai');
+
+    if (isKie) {
+      res.json({
+        success: false,
+        error: 'KIE 平台不支持自动同步模型列表。请在 KIE Market (kie.ai/market) 查看可用模型，然后手动添加。',
+        syncedCount: 0,
+      });
+      return;
+    }
+
     if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
     const modelsUrl = baseUrl.endsWith('/v1') ? `${baseUrl}/models` : `${baseUrl}/v1/models`;
 
