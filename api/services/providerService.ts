@@ -256,30 +256,30 @@ async function requestKieAsyncTask(input: ProviderGenerateInput, provider: Provi
   // 1. 创建异步任务
   const { taskId } = await createKieTask(baseUrl, provider.apiKey, upstreamModel, kieInput);
 
-  // 2. 轮询等待结果（超时 3 分钟）
-  const timeoutSeconds = Math.max(10, provider.timeoutSeconds || 180);
+  // 2. 快速返回 taskId 让前端轮询（后端不再长时间阻塞等待）
+  // 后端只轮询 15 秒，如果还没完成就返回 pending + taskId
   try {
     const result = await pollKieTask(baseUrl, provider.apiKey, taskId, {
-      timeoutMs: timeoutSeconds * 1000,
+      timeoutMs: 15_000,
       intervalMs: 3000,
     });
 
     return kieTaskToResult(result, input, provider, upstreamModel);
   } catch (pollError) {
-    console.error(`KIE 任务 ${taskId} 轮询失败:`, pollError);
-    // 轮询失败时返回 pending 状态，让前端有机会后续查询
-    return {
-      id: `${input.category}-${Date.now()}`,
-      status: 'pending',
-      providerMode: 'upstream',
-      provider: provider.name,
-      upstreamModel,
-      raw: {
-        taskId,
-        pollError: pollError instanceof Error ? pollError.message : String(pollError),
-      },
-    };
+    console.log(`KIE 任务 ${taskId} 未在初始轮询中完成，交由前端继续轮询`);
   }
+
+  // 3. 返回 pending 状态 + taskId，让前端后续查询
+  return {
+    id: `${input.category}-${Date.now()}`,
+    status: 'pending',
+    providerMode: 'upstream',
+    provider: provider.name,
+    upstreamModel,
+    raw: {
+      taskId,
+    },
+  };
 }
 
 async function requestUpstream(input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): Promise<ProviderGenerateResult> {
