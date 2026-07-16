@@ -159,7 +159,7 @@ export const agents: Agent[] = [
     description: '输入脚本或描述，AI自动生成高质量短视频。',
     icon: '🎬',
     category: 'video',
-    model: 'kling-2.6',
+    model: 'seedance-2',
     presetParams: { aspectRatio: '16:9', duration: '5' },
     tags: ['视频', '创作', '短视频'],
     gradient: 'from-orange-500 to-amber-400',

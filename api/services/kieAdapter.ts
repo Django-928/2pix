@@ -30,6 +30,7 @@ export async function createKieTask(
   const body: Record<string, unknown> = {
     model,
     input,
+    callbackUrl: `${process.env.PUBLIC_URL || 'https://www.2pix.cn'}/api/kie/callback`,
   };
 
   const response = await fetch(url, {
@@ -169,7 +170,7 @@ export function mapParamsToKieInput(
 
   if (!params) return input;
 
-  const isImageModel = upstreamModel.includes('image') || upstreamModel.includes('seedream') || upstreamModel.includes('flux') || upstreamModel.includes('grok-imagine') && !upstreamModel.includes('video');
+  const isImageModel = (upstreamModel.includes('image') || upstreamModel.includes('seedream') || upstreamModel.includes('flux') || upstreamModel.includes('grok-imagine')) && !upstreamModel.includes('video');
   const isVideoModel = upstreamModel.includes('video') || upstreamModel.includes('seedance') || upstreamModel.includes('kling');
 
   // seed
