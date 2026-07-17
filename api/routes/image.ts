@@ -64,7 +64,7 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
       success: true,
       id: result.id,
       url: result.url,
-      status: 'success' as const,
+      status: result.status || 'pending',
       taskId,
       providerMode: result.providerMode,
       provider: result.provider,

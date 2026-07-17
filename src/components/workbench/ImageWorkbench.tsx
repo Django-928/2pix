@@ -65,6 +65,19 @@ function FailedCard({ error }: { error: string }) {
   );
 }
 
+/* ── 图片占位骨架屏（用于轮询中） ── */
+function ImagePlaceholder() {
+  return (
+    <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[var(--bg-card,#1c1c1e)] aspect-square flex flex-col items-center justify-center gap-2">
+      <div className="relative w-6 h-6">
+        <div className="absolute inset-0 rounded-full border border-[#8b5cf6]/30" />
+        <div className="absolute inset-0 rounded-full border border-t-[#8b5cf6] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+      </div>
+      <span className="text-[10px] text-[#52525b]">正在生成...</span>
+    </div>
+  );
+}
+
 /* ── 图片网格（AI侧） ── */
 function ImageGrid({
   images,
@@ -75,31 +88,41 @@ function ImageGrid({
   onPreview: (url: string) => void;
   onDownload: (url: string, index: number) => void;
 }) {
+  const validCount = images.filter((img) => img !== '').length;
   return (
     <div className={`grid gap-2.5 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-      {images.map((img, i) => (
-        <div
-          key={i}
-          className="group relative rounded-xl overflow-hidden border border-white/[0.08] bg-[var(--bg-card,#1c1c1e)] cursor-pointer"
-          onClick={() => onPreview(img)}
-        >
-          <img src={img} alt={`生成结果 ${i + 1}`} className="w-full h-auto object-cover" />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-            <button
-              onClick={(e) => { e.stopPropagation(); onPreview(img); }}
-              className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDownload(img, i); }}
-              className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-            >
-              <Download className="w-4 h-4" />
-            </button>
+      {images.map((img, i) => {
+        // 空字符串表示正在生成中的占位
+        if (!img) {
+          return <ImagePlaceholder key={i} />;
+        }
+        return (
+          <div
+            key={i}
+            className="group relative rounded-xl overflow-hidden border border-white/[0.08] bg-[var(--bg-card,#1c1c1e)] cursor-pointer"
+            onClick={() => onPreview(img)}
+          >
+            <img src={img} alt={`生成结果 ${i + 1}`} className="w-full h-auto object-cover" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); onPreview(img); }}
+                className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDownload(img, i); }}
+                className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
+      {validCount === 0 && images.length === 0 && (
+        <ImagePlaceholder />
+      )}
     </div>
   );
 }
@@ -428,7 +451,8 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                   <FailedCard error={turn.error || '生成失败'} />
                 )}
 
-                {turn.status === 'completed' && turn.images.length > 0 && (
+                {/* generating 时也展示已返回的图片（含占位骨架屏），completed 时展示最终结果 */}
+                {(turn.status === 'generating' || turn.status === 'completed') && turn.images.length > 0 && (
                   <ImageGrid
                     images={turn.images}
                     onPreview={setPreviewImage}
