@@ -218,7 +218,7 @@ export function mapParamsToKieInput(
   }
 
   // 其他未识别参数直接透传
-  const reservedKeys = new Set(['seed', 'style', 'resolution', 'aspectRatio', 'duration', 'imageUrls', 'messages']);
+  const reservedKeys = new Set(['seed', 'style', 'resolution', 'aspectRatio', 'duration', 'imageUrls', 'messages', 'steps', 'cfgScale', 'count', 'referenceImages', 'advanced']);
   for (const [key, value] of Object.entries(params)) {
     if (!reservedKeys.has(key) && input[key] === undefined) {
       input[key] = value;

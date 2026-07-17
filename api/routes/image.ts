@@ -70,12 +70,14 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
       provider: result.provider,
       upstreamModel: result.upstreamModel,
     });
-  } catch {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[/image/generate] 生成失败:', msg);
     res.status(500).json({
-      success: false,
-      error: 'Failed to generate image',
+        success: false,
+        error: msg,
     });
-  }
+}
 });
 
 router.post('/transfer', async (req: Request, res: Response) => {
