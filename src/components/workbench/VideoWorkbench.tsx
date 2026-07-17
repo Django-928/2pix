@@ -323,17 +323,9 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
               setBillingError(`视频${reason}，请重试`);
             }
           } else {
-            // 情况3：既没有 URL 也没有 taskId（mock 模式下的 fallback）
-            const videoUrl = `https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4?t=${Date.now()}`;
-            setGeneratedVideo(videoUrl);
-            const newVideoItem: VideoItem = {
-              id: `vid-${Date.now()}`,
-              url: videoUrl,
-              duration,
-              resolution,
-              aspectRatio,
-            };
-            setGeneratedVideos((prev) => [newVideoItem, ...prev]);
+            // 既没有 URL 也没有 taskId，报错
+            toast.error('未返回视频地址或任务ID，请检查模型配置');
+            setBillingError('未返回视频地址或任务ID，请检查模型配置');
           }
 
           loadProjects();

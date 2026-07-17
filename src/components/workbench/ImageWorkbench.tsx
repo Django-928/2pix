@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
-import { Send, Loader2, Download, ZoomIn, X, ImagePlus, Wand2, ChevronUp, ImageIcon, Proportions, Layers, AlertCircle } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Download, ZoomIn, X, ImagePlus, ChevronUp, ImageIcon, Proportions, Layers, AlertCircle } from 'lucide-react';
 import type { AIModel } from '@/data/models';
 import { useStore } from '@/store/useStore';
 import { useAccountStore } from '@/store/useAccountStore';
@@ -15,35 +15,91 @@ interface ProviderGenerationResponse {
   content?: string;
   status?: string;
   taskId?: string;
-  providerMode?: 'upstream' | 'mock';
+  providerMode?: 'upstream';
   provider?: string;
   upstreamModel?: string;
 }
 
-/* ── 轮询中的占位卡片 ── */
-function PollingImageCard({ progress }: { progress: number }) {
+/* ── 对话轮次 ── */
+interface ImageTurn {
+  id: string;
+  prompt: string;
+  params: { style?: string; resolution?: string; count?: number; [key: string]: unknown };
+  status: 'generating' | 'completed' | 'failed';
+  images: string[];
+  error?: string;
+  taskId?: string;
+  progress: number;
+  createdAt: number;
+}
+
+/* ── 生成中的进度卡片（AI侧） ── */
+function GeneratingCard({ progress, count }: { progress: number; count: number }) {
   return (
-    <div className="relative rounded-xl overflow-hidden border border-[#8b5cf6]/20 bg-[var(--bg-card,#1c1c1e)] flex flex-col items-center justify-center aspect-square">
-      {/* 脉冲动画背景 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#8b5cf6]/10 to-[#6366f1]/5 animate-pulse" />
-      {/* 旋转 spinner */}
-      <div className="relative w-12 h-12">
-        <div className="absolute inset-0 rounded-full border-2 border-[#8b5cf6]/20" />
-        <div className="absolute inset-0 rounded-full border-2 border-t-[#8b5cf6] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-        <Wand2 className="absolute inset-0 m-auto w-5 h-5 text-[#8b5cf6]" />
+    <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4 space-y-3">
+      <div className="flex items-center gap-2 text-xs text-[#a78bfa]">
+        <div className="relative w-4 h-4">
+          <div className="absolute inset-0 rounded-full border border-[#8b5cf6]/30" />
+          <div className="absolute inset-0 rounded-full border border-t-[#8b5cf6] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+        </div>
+        <span>正在生成{count > 1 ? ` ${count} 张图片` : '图片'}...</span>
       </div>
-      <p className="relative mt-3 text-xs text-[#a78bfa]">生成中...</p>
-      {/* 进度条 */}
-      <div className="relative mt-2 w-32 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <div
-          className="h-full rounded-full transition-all duration-1000 ease-linear"
-          style={{
-            width: `${progress}%`,
-            background: 'linear-gradient(90deg, #8b5cf6, #6366f1)',
-          }}
+          className="h-full rounded-full transition-all duration-700 ease-linear bg-gradient-to-r from-purple-500 to-indigo-500"
+          style={{ width: `${Math.max(5, progress)}%` }}
         />
       </div>
-      <p className="relative mt-1 text-[10px] text-[#52525b]">{progress}%</p>
+      <p className="text-[10px] text-[#52525b]">{Math.round(progress)}%</p>
+    </div>
+  );
+}
+
+/* ── 失败卡片（AI侧） ── */
+function FailedCard({ error }: { error: string }) {
+  return (
+    <div className="rounded-xl bg-red-500/[0.06] border border-red-500/[0.15] p-4 flex items-start gap-2.5">
+      <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+      <p className="text-xs text-red-300 leading-relaxed">{error}</p>
+    </div>
+  );
+}
+
+/* ── 图片网格（AI侧） ── */
+function ImageGrid({
+  images,
+  onPreview,
+  onDownload,
+}: {
+  images: string[];
+  onPreview: (url: string) => void;
+  onDownload: (url: string, index: number) => void;
+}) {
+  return (
+    <div className={`grid gap-2.5 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+      {images.map((img, i) => (
+        <div
+          key={i}
+          className="group relative rounded-xl overflow-hidden border border-white/[0.08] bg-[var(--bg-card,#1c1c1e)] cursor-pointer"
+          onClick={() => onPreview(img)}
+        >
+          <img src={img} alt={`生成结果 ${i + 1}`} className="w-full h-auto object-cover" />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+            <button
+              onClick={(e) => { e.stopPropagation(); onPreview(img); }}
+              className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDownload(img, i); }}
+              className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -72,11 +128,23 @@ const ASPECT_RATIOS = [
   { label: '3:2', value: '3:2', icon: '▭' },
 ];
 
+/* ─────────────── 参数标签 ─────────────── */
+function ParamTags({ style, ratio, count }: { style: string; ratio: string; count: number }) {
+  const tags = [style, `${ratio}`, `${count}张`];
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+      {tags.map((tag) => (
+        <span key={tag} className="px-2 py-0.5 rounded-md bg-white/[0.04] text-[10px] text-[#71717a]">
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /* ─────────────── 图片工作台 ─────────────── */
 export default function ImageWorkbench({ model }: { model: AIModel }) {
   const [prompt, setPrompt] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [billingError, setBillingError] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -85,12 +153,14 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   const [numImagesState, setNumImagesState] = useState(1);
   const [activeTab, setActiveTab] = useState<'style' | 'ratio' | 'count' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [pendingTaskIds, setPendingTaskIds] = useState<Set<string>>(new Set());
-  const [pollingProgress, setPollingProgress] = useState<Record<string, number>>({});
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [turns, setTurns] = useState<ImageTurn[]>([]);
 
   const { loadProjects } = useStore();
   const { refreshBalance } = useAccountStore();
   const toast = useToast();
+
+  const isGenerating = turns.some((t) => t.status === 'generating');
 
   const aspectRatioToSize: Record<string, string> = {
     '1:1': '1024x1024',
@@ -102,6 +172,11 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
   const size = aspectRatioToSize[aspectRatio] || '1024x1024';
   const numImages = numImagesState;
+
+  /* 自动滚到底部 */
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [turns]);
 
   const handleUpload = () => {
     fileInputRef.current?.click();
@@ -127,50 +202,74 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
     setReferenceImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  /** 轮询单个 KIE 任务并更新图片列表 */
-  const pollAndResolveTask = useCallback(async (taskId: string, index: number) => {
-    const slotKey = `slot-${index}`;
+  /** 更新某个 turn 的字段 */
+  const updateTurn = useCallback((turnId: string, patch: Partial<ImageTurn>) => {
+    setTurns((prev) =>
+      prev.map((t) => (t.id === turnId ? { ...t, ...patch } : t)),
+    );
+  }, []);
+
+  /** 轮询单个 KIE 任务并更新对应 turn */
+  const pollAndResolveTask = useCallback(async (taskId: string, turnId: string) => {
+    let resolved = false;
     const result = await pollKieTask(taskId, {
       maxAttempts: 60,
       intervalMs: 3000,
       onProgress: (percent) => {
-        setPollingProgress((prev) => ({ ...prev, [slotKey]: percent }));
+        updateTurn(turnId, { progress: percent });
       },
     });
 
-    // 轮询完成，从 pending 中移除
-    setPendingTaskIds((prev) => {
-      const next = new Set(prev);
-      next.delete(taskId);
-      return next;
-    });
-    setPollingProgress((prev) => {
-      const next = { ...prev };
-      delete next[slotKey];
-      return next;
-    });
-
     if (result?.url) {
-      setGeneratedImages((prev) => {
-        const next = [...prev];
-        if (next.length > index) {
-          next[index] = result.url!;
-        } else {
-          next.push(result.url!);
-        }
-        return next;
-      });
-    } else {
-      const reason = result?.status === 'Failed' ? '任务失败' : '轮询超时';
-      toast.error(`图片 ${index + 1} ${reason}，请重试`);
-      setBillingError(`图片 ${index + 1} ${reason}`);
+      resolved = true;
+      setTurns((prev) =>
+        prev.map((t) => {
+          if (t.id !== turnId) return t;
+          const newImages = [...t.images];
+          // 找到空位填入，或追加
+          const emptyIdx = newImages.indexOf('');
+          if (emptyIdx >= 0) {
+            newImages[emptyIdx] = result.url!;
+          } else {
+            newImages.push(result.url!);
+          }
+          // 检查是否所有图片都已生成
+          const allDone = newImages.every((img) => img !== '');
+          return {
+            ...t,
+            images: newImages,
+            status: allDone ? 'completed' : 'generating',
+            progress: allDone ? 100 : t.progress,
+            taskId: allDone ? undefined : t.taskId,
+          };
+        }),
+      );
     }
-  }, [toast]);
+
+    if (!resolved) {
+      const reason = result?.status === 'Failed' ? '任务失败' : '轮询超时';
+      updateTurn(turnId, { status: 'failed', error: reason });
+      toast.error(`图片生成${reason}，请重试`);
+    }
+  }, [updateTurn, toast]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setBillingError('');
-    setIsGenerating(true);
+    setActiveTab(null);
+
+    const turnId = `turn-${Date.now()}`;
+    const newTurn: ImageTurn = {
+      id: turnId,
+      prompt: prompt.trim(),
+      params: { style: selectedStyle, resolution: size, count: numImages },
+      status: 'generating',
+      images: [],
+      progress: 0,
+      createdAt: Date.now(),
+    };
+    setTurns((prev) => [...prev, newTurn]);
+
     try {
       await runBillableTask({
         model: model.id,
@@ -182,7 +281,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
           const results = await Promise.all(
             Array.from({ length: numImages }, (_, i) =>
               api.post<ProviderGenerationResponse>('/image/generate', {
-                prompt,
+                prompt: prompt.trim(),
                 model: model.id,
                 style: selectedStyle,
                 resolution: size,
@@ -192,43 +291,57 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             ),
           );
 
-          const first = results[0];
-
-          // 分类：有 url 的直接展示，只有 taskId 的需要前端轮询
+          // 分类：有 url 的直接填入，有 taskId 的需要轮询
           const directImages: string[] = [];
-          const pollingEntries: { taskId: string; index: number }[] = [];
+          const pollingEntries: { taskId: string }[] = [];
 
-          results.forEach((item, i) => {
+          results.forEach((item) => {
             if (item.url) {
               directImages.push(item.url);
             } else if (item.taskId) {
               directImages.push(''); // 占位
-              pollingEntries.push({ taskId: item.taskId, index: i });
+              pollingEntries.push({ taskId: item.taskId });
             }
           });
 
-          setGeneratedImages(directImages);
+          // 如果有直接结果，更新 turn
+          const hasDirect = directImages.some((img) => img !== '');
+          const hasPolling = pollingEntries.length > 0;
 
-          // 启动需要轮询的任务
-          const newPending = new Set(pollingEntries.map((e) => e.taskId));
-          setPendingTaskIds((prev) => {
-            const next = new Set(prev);
-            pollingEntries.forEach((e) => next.add(e.taskId));
-            return next;
-          });
-
-          // 异步轮询（不阻塞 run 的完成）
-          pollingEntries.forEach((entry) => {
-            pollAndResolveTask(entry.taskId, entry.index);
-          });
+          if (hasDirect && !hasPolling) {
+            // 全部直接返回
+            updateTurn(turnId, {
+              images: directImages,
+              status: 'completed',
+              progress: 100,
+            });
+          } else if (hasPolling) {
+            // 有需要轮询的任务
+            updateTurn(turnId, {
+              images: directImages,
+              progress: 10,
+            });
+            // 异步轮询
+            pollingEntries.forEach((entry) => {
+              pollAndResolveTask(entry.taskId, turnId);
+            });
+          } else {
+            // 既没有 url 也没有 taskId
+            updateTurn(turnId, {
+              status: 'failed',
+              error: '未返回图片地址或任务ID，请检查模型配置',
+            });
+          }
 
           loadProjects();
         },
       });
     } catch (error) {
+      updateTurn(turnId, {
+        status: 'failed',
+        error: error instanceof Error ? error.message : '生成失败',
+      });
       setBillingError(error instanceof Error ? error.message : '生成失败');
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -256,10 +369,12 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
     '精致的日式庭院，樱花飘落，午后阳光，写实摄影风格',
   ];
 
+  const isEmpty = turns.length === 0 && !isGenerating;
+
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg-workbench, #0a0a0a)' }}>
-      {/* ── 空状态 ── */}
-      {generatedImages.length === 0 && !isGenerating && (
+      {/* ── 空状态（无对话时显示模型描述 + 快捷提示词） ── */}
+      {isEmpty && (
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#8b5cf6]/20 to-[#6366f1]/10 border border-[#8b5cf6]/20 flex items-center justify-center shadow-2xl shadow-[#8b5cf6]/10">
             <ModelLogo model={model} />
@@ -275,62 +390,62 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
         </div>
       )}
 
-      {/* ── 生成结果 ── */}
-      {(generatedImages.length > 0 || isGenerating) && (
-        <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className={`grid gap-3 max-w-3xl mx-auto ${generatedImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-
-            {/* Loading 占位 */}
-            {isGenerating && generatedImages.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center py-16">
-                <div className="relative w-16 h-16">
-                  <div className="absolute inset-0 rounded-full border-2 border-[#8b5cf6]/20" />
-                  <div className="absolute inset-0 rounded-full border-2 border-t-[#8b5cf6] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
-                  <Wand2 className="absolute inset-0 m-auto w-6 h-6 text-[#8b5cf6]" />
-                </div>
-                <p className="mt-4 text-sm text-[#71717a]">正在生成画面，请稍候…</p>
-              </div>
-            )}
-
-            {generatedImages.map((img, i) => {
-              // 空字符串表示正在轮询中，显示占位卡片
-              if (!img) {
-                return <PollingImageCard key={`polling-${i}`} progress={pollingProgress[`slot-${i}`] ?? 0} />;
-              }
-              return (
-                <div
-                  key={i}
-                  className="group relative rounded-xl overflow-hidden border border-white/[0.08] bg-[var(--bg-card,#1c1c1e)] cursor-pointer"
-                  onClick={() => setPreviewImage(img)}
-                >
-                  <img src={img} alt={`生成结果 ${i + 1}`} className="w-full h-auto object-cover" />
-                  {/* 悬停操作层 */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewImage(img);
-                      }}
-                      className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-                    >
-                      <ZoomIn className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(img, i);
-                      }}
-                      className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      {/* ── 对话流区域（可滚动） ── */}
+      {!isEmpty && (
+        <div className="flex-shrink-0 max-h-[48px] px-4 pt-3 pb-1">
+          <DescriptionCard model={model} />
         </div>
       )}
+
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        {turns.map((turn) => (
+          <div key={turn.id} className="space-y-3">
+            {/* 用户 prompt 气泡 - 靠右 */}
+            <div className="flex justify-end">
+              <div className="max-w-[80%]">
+                <div className="bg-white/[0.06] rounded-2xl rounded-br-md px-4 py-3">
+                  <p className="text-sm text-[#e4e4e7] leading-relaxed whitespace-pre-wrap">{turn.prompt}</p>
+                </div>
+                <ParamTags
+                  style={turn.params.style as string || selectedStyle}
+                  ratio={(turn.params.resolution as string || size).includes('x') ? aspectRatio : (turn.params.resolution as string || size)}
+                  count={(turn.params.count as number) || numImages}
+                />
+              </div>
+            </div>
+
+            {/* AI 响应区域 - 靠左 */}
+            <div className="flex justify-start">
+              <div className="max-w-[85%] space-y-2.5">
+                {turn.status === 'generating' && (
+                  <GeneratingCard
+                    progress={turn.progress}
+                    count={(turn.params.count as number) || numImages}
+                  />
+                )}
+
+                {turn.status === 'failed' && (
+                  <FailedCard error={turn.error || '生成失败'} />
+                )}
+
+                {turn.status === 'completed' && turn.images.length > 0 && (
+                  <ImageGrid
+                    images={turn.images}
+                    onPreview={setPreviewImage}
+                    onDownload={handleDownload}
+                  />
+                )}
+
+                {/* 时间戳 */}
+                <p className="text-[10px] text-[#3f3f46]">
+                  {new Date(turn.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+        <div ref={chatEndRef} />
+      </div>
 
       {/* ── 底部操作区 ── */}
       <div className="p-4">
@@ -382,6 +497,12 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               placeholder="描述画面中的物体、风格及文字排版，注重指令精准与细节还原。"
               className="w-full bg-transparent text-[#e4e4e7] placeholder-[#52525b] text-sm resize-none outline-none min-h-[48px] max-h-[120px]"
               rows={2}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
             />
 
             {/* 参数弹出面板 */}
@@ -520,8 +641,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                const idx = generatedImages.indexOf(previewImage);
-                handleDownload(previewImage, idx >= 0 ? idx : 0);
+                handleDownload(previewImage, 0);
               }}
               className="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-[#333]/80 backdrop-blur-sm border border-white/[0.1] text-white text-xs flex items-center gap-1.5 hover:bg-[#444]/80 transition-all"
             >

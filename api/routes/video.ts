@@ -54,22 +54,10 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
 });
 
 router.post('/convert', async (req: Request, res: Response) => {
-  void req
-  
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    res.status(200).json({
-      success: true,
-      id: `vid-${Date.now()}`,
-      url: `https://neeko-copilot.bytedance.net/api/text2image?prompt=video%20motion&image_size=landscape_16_9`,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to convert image to video',
-    });
-  }
+  res.status(501).json({
+    success: false,
+    error: 'Image to video conversion is not yet implemented',
+  });
 });
 
 export default router;

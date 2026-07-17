@@ -17,10 +17,10 @@ const tools: Tool[] = [
 ];
 
 const sampleImages = [
-  'https://neeko-copilot.bytedance.net/api/text2image?prompt=abstract%20art%20colorful&image_size=square',
-  'https://neeko-copilot.bytedance.net/api/text2image?prompt=landscape%20mountains&image_size=square',
-  'https://neeko-copilot.bytedance.net/api/text2image?prompt=city%20night&image_size=square',
-  'https://neeko-copilot.bytedance.net/api/text2image?prompt=nature%20forest&image_size=square',
+  'placeholder://canvas/sample-1',
+  'placeholder://canvas/sample-2',
+  'placeholder://canvas/sample-3',
+  'placeholder://canvas/sample-4',
 ];
 
 export default function CanvasPage() {

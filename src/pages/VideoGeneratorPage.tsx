@@ -349,9 +349,7 @@ function getInitialParams(model: VideoModel) {
 }
 
 function getTaskImage(prompt: string, modelName: string) {
-  return `https://neeko-copilot.bytedance.net/api/text2image?prompt=${encodeURIComponent(
-    `${prompt || modelName} cinematic video frame, editorial lighting, premium product demo`,
-  )}&image_size=landscape_16_9`;
+  return `placeholder://video-task/${encodeURIComponent(prompt || modelName)}`;
 }
 
 export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPageProps) {
@@ -475,7 +473,7 @@ export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPa
       preview:
         slot === 'audio'
           ? 'waveform'
-          : `https://neeko-copilot.bytedance.net/api/text2image?prompt=${encodeURIComponent(`${slotLabels[slot]} visual placeholder for ai video workspace`)}&image_size=landscape_16_9`,
+          : `placeholder://${slot}/upload-${Date.now()}`,
     };
     addAssetToSlot(slot, mock);
   };
@@ -538,7 +536,12 @@ export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPa
             aspectRatio: params.ratio,
             style: modeLabel[activeModel.mode],
           });
-          const outputUrl = result.url || getTaskImage(finalPrompt, `${activeModel.name} completed`);
+          const outputUrl = result.url || '';
+          if (!outputUrl) {
+            setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status: 'failed' as const, progress: 100 } : task)));
+            console.error('未返回视频地址');
+            return;
+          }
           setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status: 'complete', progress: 100, outputUrl } : task)));
           addProject({
             id: `proj-${Date.now()}`,

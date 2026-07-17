@@ -46,10 +46,10 @@ const stats = [
 ];
 
 const recentProjects = [
-  { id: 1, type: 'image', name: '赛博朋克城市', preview: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=cyberpunk%20city%20night%20neon%20lights&image_size=landscape_16_9' },
-  { id: 2, type: 'video', name: '自然风光延时', preview: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=nature%20landscape%20mountains%20sunset&image_size=landscape_16_9' },
-  { id: 3, type: 'audio', name: '背景音乐创作', preview: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=abstract%20music%20waves%20colorful&image_size=square' },
-  { id: 4, type: 'canvas', name: '创意设计稿', preview: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=creative%20design%20layout%20artistic&image_size=square' },
+  { id: 1, type: 'image', name: '赛博朋克城市', preview: '' },
+  { id: 2, type: 'video', name: '自然风光延时', preview: '' },
+  { id: 3, type: 'audio', name: '背景音乐创作', preview: '' },
+  { id: 4, type: 'canvas', name: '创意设计稿', preview: '' },
 ];
 
 export default function Dashboard() {

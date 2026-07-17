@@ -79,41 +79,17 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
 });
 
 router.post('/transfer', async (req: Request, res: Response) => {
-  const { style } = req.body;
-  
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    res.status(200).json({
-      success: true,
-      id: `img-${Date.now()}`,
-      url: `https://neeko-copilot.bytedance.net/api/text2image?prompt=style%20transfer%20${style}&image_size=square`,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to transfer style',
-    });
-  }
+  res.status(501).json({
+    success: false,
+    error: 'Style transfer is not yet implemented',
+  });
 });
 
 router.post('/enhance', async (req: Request, res: Response) => {
-  void req
-  
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    res.status(200).json({
-      success: true,
-      id: `img-${Date.now()}`,
-      url: `https://neeko-copilot.bytedance.net/api/text2image?prompt=enhanced%20high%20quality&image_size=square`,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      error: 'Failed to enhance image',
-    });
-  }
+  res.status(501).json({
+    success: false,
+    error: 'Image enhancement is not yet implemented',
+  });
 });
 
 export default router;

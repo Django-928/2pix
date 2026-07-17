@@ -76,7 +76,8 @@ export default function ImageGeneratorPage() {
             cfgScale,
             seed,
           });
-          const imageUrl = result.url || `https://neeko-copilot.bytedance.net/api/text2image?prompt=${encodeURIComponent(prompt)}&image_size=square`;
+          const imageUrl = result.url;
+          if (!imageUrl) throw new Error('未返回图片地址');
           setGeneratedImage(imageUrl);
           addProject({
             id: `proj-${Date.now()}`,
@@ -110,17 +111,29 @@ export default function ImageGeneratorPage() {
   const handleStyleTransfer = async () => {
     if (!uploadedImage) return;
     setIsGenerating(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setGeneratedImage(`https://neeko-copilot.bytedance.net/api/text2image?prompt=artistic%20style%20transfer%20${style}&image_size=square`);
-    setIsGenerating(false);
+    try {
+      const result = await api.post<ProviderGenerationResponse>('/image/transfer', { style });
+      if (result.url) setGeneratedImage(result.url);
+      else throw new Error('风格迁移暂不支持');
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : '风格迁移失败');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleEnhance = async () => {
     if (!uploadedImage) return;
     setIsGenerating(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setGeneratedImage(`https://neeko-copilot.bytedance.net/api/text2image?prompt=high%20quality%20enhanced%20image&image_size=square`);
-    setIsGenerating(false);
+    try {
+      const result = await api.post<ProviderGenerationResponse>('/image/enhance', {});
+      if (result.url) setGeneratedImage(result.url);
+      else throw new Error('图片增强暂不支持');
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : '图片增强失败');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopy = async () => {

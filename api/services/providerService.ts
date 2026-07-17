@@ -36,8 +36,8 @@ interface ProviderGenerateInput {
 
 interface ProviderGenerateResult {
   id: string;
-  status: 'success' | 'complete' | 'pending' | 'mock';
-  providerMode: 'upstream' | 'mock';
+  status: 'success' | 'complete' | 'pending';
+  providerMode: 'upstream';
   provider?: string;
   upstreamModel?: string;
   url?: string;
@@ -193,38 +193,7 @@ function extractContent(raw: unknown): string | undefined {
   return undefined;
 }
 
-function getMockResult(input: ProviderGenerateInput, reason = '未配置可用上游平台，使用 mock 兜底'): ProviderGenerateResult {
-  const idPrefix = input.category === 'image' ? 'img' : input.category === 'video' ? 'vid' : input.category === 'audio' ? 'aud' : 'msg';
-  const base = {
-    id: `${idPrefix}-${Date.now()}`,
-    status: 'mock' as const,
-    providerMode: 'mock' as const,
-    provider: 'mock',
-    upstreamModel: input.localModel,
-    raw: { reason },
-  };
 
-  if (input.category === 'chat') {
-    return {
-      ...base,
-      content: `这是来自 mock 兜底的回复。当前未启用真实上游模型，后续配置 kie.ai API Key 后会自动切换到真实请求。\n\n你的输入是：${input.prompt}`,
-    };
-  }
-
-  if (input.category === 'audio') {
-    return {
-      ...base,
-      url: `audio/mock/${Date.now()}`,
-    };
-  }
-
-  return {
-    ...base,
-    url: `https://neeko-copilot.bytedance.net/api/text2image?prompt=${encodeURIComponent(input.prompt)}&image_size=${
-      input.category === 'video' ? 'landscape_16_9' : 'square'
-    }`,
-  };
-}
 
 /** 判断是否为 KIE provider */
 function isKieProvider(provider: ProviderItem): boolean {
@@ -234,7 +203,7 @@ function isKieProvider(provider: ProviderItem): boolean {
 /** 将 KIE 异步任务结果转换为统一的 ProviderGenerateResult */
 function kieTaskToResult(taskResult: KieTaskResult, input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): ProviderGenerateResult {
   const url = taskResult.image_url || taskResult.video_url;
-  const status = taskResult.status === 'Success' ? 'success' : taskResult.status === 'Failed' ? 'mock' : 'pending';
+  const status = taskResult.status === 'Success' ? 'success' : taskResult.status === 'Failed' ? 'complete' : 'pending';
 
   return {
     id: `${input.category}-${Date.now()}`,
@@ -450,29 +419,20 @@ function calculateCostCredits(
 export async function generateWithProvider(input: ProviderGenerateInput): Promise<ProviderGenerateResult> {
   const resolved = resolveProvider(input.localModel, input.category);
   if (!resolved) {
-    const mockResult = getMockResult(input);
-    mockResult.costCredits = calculateCostCredits(input.localModel, input.category, mockResult.content);
-    return mockResult;
+    throw new Error(`未找到可用的 provider 来处理 ${input.category} 模型 "${input.localModel}"，请检查后台 provider 配置`);
   }
 
-  try {
-    const result = await requestUpstream(input, resolved.provider, resolved.mapping.upstreamModel);
-    result.costCredits = calculateCostCredits(input.localModel, input.category, result.content);
-    return result;
-  } catch (error) {
-    console.error('Provider request fallback to mock:', error);
-    const mockResult = getMockResult(input, error instanceof Error ? error.message : '上游请求失败，使用 mock 兜底');
-    mockResult.costCredits = calculateCostCredits(input.localModel, input.category, mockResult.content);
-    return mockResult;
-  }
+  const result = await requestUpstream(input, resolved.provider, resolved.mapping.upstreamModel);
+  result.costCredits = calculateCostCredits(input.localModel, input.category, result.content);
+  return result;
 }
 
 export function getProviderStatus(localModel: string, category: ProviderCategory) {
   const resolved = resolveProvider(localModel, category);
   if (!resolved) {
     return {
-      mode: 'mock',
-      provider: 'mock',
+      mode: 'unavailable' as const,
+      provider: '',
       upstreamModel: localModel,
       enabled: false,
     };
