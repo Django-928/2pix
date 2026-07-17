@@ -202,6 +202,7 @@ function isKieProvider(provider: ProviderItem): boolean {
 
 /** 将 KIE 异步任务结果转换为统一的 ProviderGenerateResult */
 function kieTaskToResult(taskResult: KieTaskResult, input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): ProviderGenerateResult {
+  console.log('[kieTaskToResult] taskResult:', JSON.stringify(taskResult, null, 2));
   const url = taskResult.image_url || taskResult.video_url;
   const status = taskResult.status === 'Success' ? 'success' : taskResult.status === 'Failed' ? 'complete' : 'pending';
 

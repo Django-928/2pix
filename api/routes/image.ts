@@ -60,6 +60,7 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
       ? (result.raw as Record<string, unknown>).taskId as string | undefined
       : undefined;
 
+    console.log('[/image/generate] result:', JSON.stringify({ id: result.id, url: result.url, status: result.status, taskId, providerMode: result.providerMode }));
     res.status(200).json({
       success: true,
       id: result.id,
