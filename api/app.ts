@@ -56,6 +56,9 @@ initCleanupService(db)
 
 const app: express.Application = express()
 
+// ========== 信任代理（Nginx 反向代理必需） ==========
+app.set('trust proxy', 1) // 信任第一层代理
+
 // ========== CORS 配置 ==========
 const CORS_ORIGINS = process.env.CORS_ORIGINS
 if (CORS_ORIGINS) {
@@ -63,11 +66,34 @@ if (CORS_ORIGINS) {
   app.use(cors({
     origin: (origin, callback) => {
       // 允许无 origin 的请求（如服务端调用、Postman）
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) {
         callback(null, true)
-      } else {
-        callback(new Error('Not allowed by CORS'))
+        return
       }
+      // 精确匹配
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true)
+        return
+      }
+      // 支持子域名匹配（如 .2pix.cn 匹配 www.2pix.cn, app.2pix.cn）
+      try {
+        const url = new URL(origin)
+        const rootDomain = allowedOrigins.some((allowed) => {
+          try {
+            return url.hostname.endsWith(new URL(allowed).hostname.replace(/^\*\./, '.'))
+          } catch {
+            return false
+          }
+        })
+        if (rootDomain) {
+          callback(null, true)
+          return
+        }
+      } catch {
+        // ignore URL parse errors
+      }
+      console.warn(`[CORS] Blocked origin: ${origin}`)
+      callback(new Error('Not allowed by CORS'))
     },
     credentials: true,
   }))
