@@ -195,7 +195,7 @@ const defaultConfigs: Record<string, { description: string; value: Record<string
             { localModel: 'gpt-5.2', upstreamModel: 'gpt-5.2', category: 'chat', enabled: true },
             { localModel: 'claude-opus-4', upstreamModel: 'claude-opus-4-7', category: 'chat', enabled: true },
             { localModel: 'claude-sonnet-4', upstreamModel: 'claude-sonnet-4-6', category: 'chat', enabled: true },
-            { localModel: 'gpt-image-2', upstreamModel: 'gpt-image-2', category: 'image', enabled: true },
+            { localModel: 'gpt-image-2', upstreamModel: 'gpt-image-2-text-to-image', category: 'image', enabled: true },
             { localModel: 'gpt-image-1.5', upstreamModel: 'gpt-image-1.5', category: 'image', enabled: true },
             { localModel: 'gpt-image-1', upstreamModel: 'gpt-image-1', category: 'image', enabled: true },
           ],
@@ -215,7 +215,7 @@ const defaultConfigs: Record<string, { description: string; value: Record<string
             { localModel: 'claude-haiku-4-5', upstreamModel: 'claude-haiku-4-5', category: 'chat', enabled: true },
             { localModel: 'gpt-5-5', upstreamModel: 'gpt-5-5', category: 'chat', enabled: true },
             // Image 模型
-            { localModel: 'gpt-image-2', upstreamModel: 'gpt-image-2', category: 'image', enabled: true },
+            { localModel: 'gpt-image-2', upstreamModel: 'gpt-image-2-text-to-image', category: 'image', enabled: true },
             { localModel: 'seedream-4', upstreamModel: 'bytedance/seedream-v4-text-to-image', category: 'image', enabled: true },
             { localModel: 'flux-2', upstreamModel: 'flux-2/flex-text-to-image', category: 'image', enabled: true },
             { localModel: 'wan2-7-image', upstreamModel: 'wan-2-7-image', category: 'image', enabled: true },
