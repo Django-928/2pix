@@ -227,11 +227,11 @@ async function requestKieAsyncTask(input: ProviderGenerateInput, provider: Provi
   const { taskId } = await createKieTask(baseUrl, provider.apiKey, upstreamModel, kieInput);
 
   // 2. 快速返回 taskId 让前端轮询（后端不再长时间阻塞等待）
-  // 后端只轮询 15 秒，如果还没完成就返回 pending + taskId
+  // 后端轮询 60 秒，如果还没完成就返回 pending + taskId
   try {
     const result = await pollKieTask(baseUrl, provider.apiKey, taskId, {
-      timeoutMs: 15_000,
-      intervalMs: 3000,
+      timeoutMs: 60_000,
+      intervalMs: 5000,
     });
 
     return kieTaskToResult(result, input, provider, upstreamModel);

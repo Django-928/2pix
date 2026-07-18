@@ -49,6 +49,7 @@ function getKieCredentials(): { baseUrl: string; apiKey: string } | null {
  */
 router.get('/tasks/:taskId', async (req: Request, res: Response): Promise<void> => {
   const { taskId } = req.params;
+  console.log(`[kieTasks] 查询任务: ${taskId}`);
 
   // 1. 先查内存缓存（KIE callback 写入的结果）
   const cached = taskResults.get(taskId);
