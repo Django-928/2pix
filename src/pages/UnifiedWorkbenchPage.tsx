@@ -775,6 +775,10 @@ export default function UnifiedWorkbenchPage() {
               <div className="w-full h-full overflow-hidden">
                 <ChatWorkbench model={activeModel} />
               </div>
+            ) : activeModel.category === 'image' ? (
+              <div className="w-full h-full overflow-hidden">
+                <ImageWorkbench model={activeModel} />
+              </div>
             ) : (
               <div className="text-center space-y-5 max-w-md">
                 <div
@@ -791,8 +795,8 @@ export default function UnifiedWorkbenchPage() {
             )}
           </div>
 
-          {/* 下 1/3 输入区（聊天模式不需要，输入框已内置在 ChatWorkbench 中） */}
-          {activeModel.category !== 'chat' && (
+          {/* 下 1/3 输入区（聊天和图片模式不需要，输入框已内置在 Workbench 中） */}
+          {activeModel.category !== 'chat' && activeModel.category !== 'image' && (
             <div
               className="flex-1 min-h-0 flex flex-col justify-end p-6 pb-8 z-10"
               style={{
