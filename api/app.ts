@@ -263,10 +263,20 @@ if (fs.existsSync(distVideoPath)) {
 // ========== 静态文件服务（前端构建产物）==========
 const distPath = path.resolve(__dirname, '../dist')
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath))
+  app.use(express.static(distPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+    },
+  }))
   // SPA fallback: 所有非 API 请求返回 index.html
   app.get('*', (req: Request, res: Response, _next: NextFunction) => {
     if (req.path.startsWith('/api/')) return _next()
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     res.sendFile(path.join(distPath, 'index.html'))
   })
 }
