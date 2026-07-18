@@ -65,6 +65,7 @@ router.get('/tasks/:taskId', async (req: Request, res: Response): Promise<void> 
 
   // 2. 主动向 KIE API 查询（优先使用系统配置中的凭据，也可通过 querystring 覆盖）
   const systemCreds = getKieCredentials();
+  console.log(`[kieTasks] systemCreds:`, systemCreds ? 'found' : 'NULL');
   const baseUrl = (req.query.baseUrl as string | undefined) || systemCreds?.baseUrl;
   const apiKey = (req.query.apiKey as string | undefined) || systemCreds?.apiKey;
 
