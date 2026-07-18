@@ -1,5 +1,5 @@
 import db from '../db/index.js';
-import { createKieTask, pollKieTask, mapParamsToKieInput } from './kieAdapter.js';
+import { createKieTask, pollKieTask, mapParamsToKieInput, normalizeKieResult } from './kieAdapter.js';
 import type { KieTaskResult } from './kieAdapter.js';
 
 export type ProviderCategory = 'chat' | 'image' | 'video' | 'audio';
@@ -203,16 +203,15 @@ function isKieProvider(provider: ProviderItem): boolean {
 /** 将 KIE 异步任务结果转换为统一的 ProviderGenerateResult */
 function kieTaskToResult(taskResult: KieTaskResult, input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): ProviderGenerateResult {
   console.log('[kieTaskToResult] taskResult:', JSON.stringify(taskResult, null, 2));
-  const url = taskResult.image_url || taskResult.video_url;
-  const status = taskResult.status === 'Success' ? 'success' : taskResult.status === 'Failed' ? 'complete' : 'pending';
+  const normalized = normalizeKieResult(taskResult);
 
   return {
     id: `${input.category}-${Date.now()}`,
-    status,
+    status: normalized.status === 'success' ? 'success' : normalized.status === 'failed' ? 'complete' : 'pending',
     providerMode: 'upstream',
     provider: provider.name,
     upstreamModel,
-    url,
+    url: normalized.url,
     raw: taskResult,
   };
 }

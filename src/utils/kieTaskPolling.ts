@@ -100,11 +100,18 @@ export async function pollKieTask(
 
       const data = await res.json();
 
-      // 后端封装的格式：{ success, data: { status, image_url, video_url, ... } }
+      // 后端封装的格式：{ success, data: { state/status, resultUrl/image_url/video_url, ... } }
       const task = data?.data ?? data;
 
-      if (task.status === 'Success') {
+      // KIE 状态归一化
+      const rawStatus = task.state || task.status || '';
+      const statusLower = rawStatus.toLowerCase();
+      const isSuccess = ['success', 'completed', 'succeeded'].includes(statusLower);
+      const isFailed = ['failed', 'failure'].includes(statusLower);
+
+      if (isSuccess) {
         const url =
+          task.resultUrl ||
           task.image_url ||
           task.video_url ||
           (task as Record<string, unknown>).url;
@@ -114,7 +121,7 @@ export async function pollKieTask(
         }
       }
 
-      if (task.status === 'Failed') {
+      if (isFailed) {
         return { status: 'Failed', raw: task as Record<string, unknown> };
       }
 

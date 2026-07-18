@@ -6,10 +6,38 @@ export interface KieCreateTaskResult {
 }
 
 export interface KieTaskResult {
-  status: 'Success' | 'Processing' | 'Failed';
+  /** KIE 使用 state 字段（generating/completed/failed），部分模型使用 status（Success/Processing/Failed） */
+  state?: string;
+  status?: string;
+  /** KIE 使用 resultUrl 字段 */
+  resultUrl?: string;
+  /** 兼容旧字段名 */
   video_url?: string;
   image_url?: string;
   [key: string]: unknown;
+}
+
+/**
+ * 从 KieTaskResult 中提取标准化的状态和 URL
+ */
+export function normalizeKieResult(task: KieTaskResult): { status: 'success' | 'failed' | 'pending'; url?: string } {
+  // 状态归一化：state 或 status 字段
+  const rawStatus = task.state || task.status || '';
+  const statusLower = rawStatus.toLowerCase();
+
+  let status: 'success' | 'failed' | 'pending';
+  if (statusLower === 'success' || statusLower === 'completed' || statusLower === 'succeeded') {
+    status = 'success';
+  } else if (statusLower === 'failed' || statusLower === 'failure') {
+    status = 'failed';
+  } else {
+    status = 'pending';
+  }
+
+  // URL 归一化：resultUrl 或 image_url 或 video_url
+  const url = task.resultUrl || task.image_url || task.video_url;
+
+  return { status, url };
 }
 
 interface KieApiResponse<T = unknown> {
@@ -100,16 +128,17 @@ export async function pollKieTask(
   while (Date.now() - startTime < timeoutMs) {
     const result = await queryKieTask(baseUrl, apiKey, taskId);
     const elapsed = Date.now() - startTime;
+    const normalized = normalizeKieResult(result);
 
     if (onProgress) {
-      onProgress(result.status, elapsed);
+      onProgress(normalized.status, elapsed);
     }
 
-    if (result.status === 'Success') {
+    if (normalized.status === 'success') {
       return result;
     }
 
-    if (result.status === 'Failed') {
+    if (normalized.status === 'failed') {
       throw new Error(`KIE 任务 ${taskId} 执行失败：${JSON.stringify(result)}`);
     }
 

@@ -1,7 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import db from '../db/index.js';
 import { taskResults } from './kieCallback.js';
-import { queryKieTask } from '../services/kieAdapter.js';
+import { queryKieTask, normalizeKieResult } from '../services/kieAdapter.js';
 
 const router = express.Router();
 
@@ -73,7 +73,8 @@ router.get('/tasks/:taskId', async (req: Request, res: Response): Promise<void> 
       const result = await queryKieTask(baseUrl, apiKey, taskId);
 
       // 如果任务已完成，也缓存结果
-      if (result.status === 'Success' || result.status === 'Failed') {
+      const normalized = normalizeKieResult(result);
+      if (normalized.status === 'success' || normalized.status === 'failed') {
         taskResults.set(taskId, result);
       }
 
