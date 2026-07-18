@@ -225,20 +225,8 @@ async function requestKieAsyncTask(input: ProviderGenerateInput, provider: Provi
   // 1. 创建异步任务
   const { taskId } = await createKieTask(baseUrl, provider.apiKey, upstreamModel, kieInput);
 
-  // 2. 快速返回 taskId 让前端轮询（后端不再长时间阻塞等待）
-  // 后端轮询 60 秒，如果还没完成就返回 pending + taskId
-  try {
-    const result = await pollKieTask(baseUrl, provider.apiKey, taskId, {
-      timeoutMs: 60_000,
-      intervalMs: 5000,
-    });
-
-    return kieTaskToResult(result, input, provider, upstreamModel);
-  } catch (pollError) {
-    console.log(`KIE 任务 ${taskId} 未在初始轮询中完成，交由前端继续轮询`);
-  }
-
-  // 3. 返回 pending 状态 + taskId，让前端后续查询
+  // 2. 直接返回 taskId，让前端负责轮询
+  // 后端不再轮询等待，避免阻塞请求
   return {
     id: `${input.category}-${Date.now()}`,
     status: 'pending',
