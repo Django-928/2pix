@@ -95,7 +95,7 @@ const defaultProviderConfig: ProviderConfig = {
   ],
 };
 
-function readProviderConfig(): ProviderConfig {
+export function readProviderConfig(): ProviderConfig {
   const row = db.prepare('SELECT config_value FROM admin_configs WHERE config_key = ?').get('providers') as { config_value: string } | undefined;
   if (!row?.config_value) return defaultProviderConfig;
 
