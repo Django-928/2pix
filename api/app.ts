@@ -113,8 +113,8 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // 跳过健康检查
-    return req.path === '/api/health'
+    // 跳过健康检查和KIE任务轮询（轮询频率高但每请求开销低）
+    return req.path === '/api/health' || req.path.startsWith('/api/kie/tasks/')
   },
 })
 

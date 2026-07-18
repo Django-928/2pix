@@ -90,6 +90,7 @@ export async function pollKieTask(
         headers: {
           Accept: 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!res.ok) {
