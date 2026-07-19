@@ -63,6 +63,42 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { outputUrl, status } = req.body as { outputUrl?: string; status?: string };
+    const existing = db.prepare('SELECT id FROM works WHERE id = ? AND user_id = ?').get(req.params.id, req.user?.id);
+    if (!existing) {
+      res.status(404).json({ success: false, error: '作品不存在' });
+      return;
+    }
+
+    const sets: string[] = [];
+    const values: (string | number)[] = [];
+
+    if (outputUrl !== undefined) {
+      sets.push('output_url = ?');
+      values.push(outputUrl);
+    }
+    if (status !== undefined && ['pending', 'complete', 'failed'].includes(status)) {
+      sets.push('status = ?');
+      values.push(status);
+    }
+    if (sets.length === 0) {
+      res.status(400).json({ success: false, error: '没有需要更新的字段' });
+      return;
+    }
+
+    sets.push("updated_at = CURRENT_TIMESTAMP");
+    values.push(req.params.id, req.user?.id);
+    db.prepare(`UPDATE works SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`).run(...values);
+
+    res.json({ success: true, message: '作品已更新' });
+  } catch (error) {
+    console.error('Update work error:', error);
+    res.status(500).json({ success: false, error: '更新作品失败' });
+  }
+});
+
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const existing = db.prepare('SELECT id, name FROM works WHERE id = ? AND user_id = ?').get(req.params.id, req.user?.id) as { id: string; name: string } | undefined;

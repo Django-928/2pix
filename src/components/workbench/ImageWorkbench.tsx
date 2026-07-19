@@ -178,9 +178,33 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [turns, setTurns] = useState<ImageTurn[]>([]);
 
-  const { loadProjects } = useStore();
+  const { projects, loadProjects } = useStore();
   const { refreshBalance } = useAccountStore();
   const toast = useToast();
+
+  // 从 works 历史恢复对话流（仅首次挂载）
+  const initializedRef = useRef(false);
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    const modelWorks = projects
+      .filter((p) => p.type === 'image' && p.model === model.id && p.outputUrl)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 20);
+    if (modelWorks.length > 0) {
+      setTurns(
+        modelWorks.map((w) => ({
+          id: `turn-${w.id}`,
+          prompt: w.name,
+          params: w.inputParams as { style?: string; count?: number; resolution?: string } || {},
+          status: 'completed' as const,
+          images: [w.outputUrl!],
+          progress: 100,
+          createdAt: new Date(w.createdAt).getTime(),
+        })),
+      );
+    }
+  }, [model.id, projects]);
 
   const isGenerating = turns.some((t) => t.status === 'generating');
 
@@ -232,7 +256,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   }, []);
 
   /** 轮询单个 KIE 任务并更新对应 turn */
-  const pollAndResolveTask = useCallback(async (taskId: string, turnId: string) => {
+  const pollAndResolveTask = useCallback(async (taskId: string, turnId: string, workId?: string) => {
     let resolved = false;
     const result = await pollKieTask(taskId, {
       maxAttempts: 60,
@@ -266,6 +290,11 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
           };
         }),
       );
+
+      // 回写 works 表的 output_url
+      if (workId) {
+        api.patch(`/works/${workId}`, { outputUrl: result.url }).catch(() => {});
+      }
     }
 
     if (!resolved) {
@@ -315,14 +344,14 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
           // 分类：有 url 的直接填入，有 taskId 的需要轮询
           const directImages: string[] = [];
-          const pollingEntries: { taskId: string }[] = [];
+          const pollingEntries: { taskId: string; workId?: string }[] = [];
 
           results.forEach((item) => {
             if (item.url) {
               directImages.push(item.url);
             } else if (item.taskId) {
               directImages.push(''); // 占位
-              pollingEntries.push({ taskId: item.taskId });
+              pollingEntries.push({ taskId: item.taskId, workId: item.id });
             }
           });
 
@@ -345,7 +374,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             });
             // 异步轮询
             pollingEntries.forEach((entry) => {
-              pollAndResolveTask(entry.taskId, turnId);
+              pollAndResolveTask(entry.taskId, turnId, entry.workId);
             });
           } else {
             // 既没有 url 也没有 taskId
