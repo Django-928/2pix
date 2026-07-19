@@ -10,7 +10,9 @@ export interface KieTaskResult {
   state?: string;
   status?: string;
   /** KIE 使用 resultUrl 字段 */
-  resultUrl?: string;
+  resultUrl?: string | string[];
+  /** KIE recordInfo 实际返回的字段（复数） */
+  resultUrls?: string | string[];
   /** 兼容旧字段名 */
   video_url?: string;
   image_url?: string;
@@ -34,8 +36,9 @@ export function normalizeKieResult(task: KieTaskResult): { status: 'success' | '
     status = 'pending';
   }
 
-  // URL 归一化：resultUrl 或 image_url 或 video_url
-  const url = task.resultUrl || task.image_url || task.video_url;
+  // URL 归一化：resultUrl / resultUrls / image_url / video_url
+  let url = task.resultUrl || task.resultUrls || task.image_url || task.video_url;
+  if (Array.isArray(url)) url = url[0];
 
   return { status, url };
 }
