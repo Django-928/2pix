@@ -16,7 +16,7 @@ router.get('/tasks/:taskId', async (req: Request, res: Response): Promise<void> 
   // 1. 先查内存缓存（KIE callback 写入的结果）
   const cached = taskResults.get(taskId);
   if (cached) {
-    console.log(`[kieTasks] 命中缓存`);
+    console.log(`[kieTasks] 命中缓存, state=${cached.state || cached.status}`);
     res.status(200).json({
       success: true,
       taskId,
@@ -34,8 +34,6 @@ router.get('/tasks/:taskId', async (req: Request, res: Response): Promise<void> 
 
   if (!kieProvider?.baseUrl || !kieProvider?.apiKey) {
     console.log(`[kieTasks] 未找到KIE provider配置, providers count: ${config.providers.length}`);
-    // 列出所有provider ID方便调试
-    console.log(`[kieTasks] provider IDs: ${config.providers.map(p => p.id).join(', ')}`);
     res.status(404).json({
       success: false,
       error: '未找到KIE provider配置',
@@ -47,7 +45,6 @@ router.get('/tasks/:taskId', async (req: Request, res: Response): Promise<void> 
   const apiKey = kieProvider.apiKey;
 
   try {
-    console.log(`[kieTasks] 向KIE查询: ${baseUrl}/... taskId=${taskId}`);
     const result = await queryKieTask(baseUrl, apiKey, taskId);
     console.log(`[kieTasks] KIE返回: state=${result.state || result.status}, resultUrl=${result.resultUrl ? 'yes' : 'no'}`);
 
@@ -65,9 +62,12 @@ router.get('/tasks/:taskId', async (req: Request, res: Response): Promise<void> 
     });
   } catch (queryError) {
     console.error(`[kieTasks] KIE查询失败:`, queryError);
-    res.status(502).json({
-      success: false,
-      error: queryError instanceof Error ? queryError.message : 'KIE 查询失败',
+    // 返回 pending 而不是 502，让前端继续轮询
+    res.status(200).json({
+      success: true,
+      taskId,
+      source: 'error-fallback',
+      data: { state: 'processing' },
     });
   }
 });

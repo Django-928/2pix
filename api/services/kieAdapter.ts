@@ -101,11 +101,19 @@ export async function queryKieTask(
 
   const raw = await response.json().catch(() => ({})) as KieApiResponse<KieTaskResult>;
 
-  if (!response.ok || raw.code !== 200) {
-    throw new Error(`KIE queryTask 失败：${raw.msg || `HTTP ${response.status}`}`);
+  // data 为 null 说明任务还在处理中，返回 pending 状态而不是抛错
+  if (raw.code === 200 && raw.data) {
+    return raw.data;
   }
 
-  return raw.data;
+  // 非200但也不是服务端错误 → 任务尚未就绪，返回 pending
+  if (response.ok && (!raw.code || raw.code !== 200)) {
+    console.log(`[kieAdapter] queryTask: code=${raw.code}, msg=${raw.msg}, 返回pending`);
+    return { state: 'processing' } as KieTaskResult;
+  }
+
+  // 服务端错误
+  throw new Error(`KIE queryTask 失败：${raw.msg || `HTTP ${response.status}`}`);
 }
 
 /** 轮询等待 KIE 任务完成（带超时） */
