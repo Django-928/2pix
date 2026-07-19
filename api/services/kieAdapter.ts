@@ -90,7 +90,7 @@ export async function queryKieTask(
   apiKey: string,
   taskId: string,
 ): Promise<KieTaskResult> {
-  const url = `${baseUrl.replace(/\/+$/, '')}/api/v1/jobs/taskInfo?taskId=${encodeURIComponent(taskId)}`;
+  const url = `${baseUrl.replace(/\/+$/, '')}/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`;
 
   const response = await fetch(url, {
     method: 'GET',
