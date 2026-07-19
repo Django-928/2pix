@@ -510,7 +510,8 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
         <div className="max-w-3xl mx-auto space-y-3">
           {/* 输入框容器 */}
           <div className="relative rounded-2xl bg-[var(--bg-card,#1c1c1e)] border border-white/[0.08] p-4 shadow-lg">
-            {/* 参考图上传行 */}
+            {/* 参考图上传行 - 仅空状态时显示 */}
+            {isEmpty && (
             <div className="flex items-center gap-2 mb-3 overflow-x-auto">
               {referenceImages.map((img, i) => (
                 <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/[0.08] flex-shrink-0 group">
@@ -541,12 +542,13 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               />
               <span className="text-[11px] text-[#52525b] flex-shrink-0">参考图 {referenceImages.length}/10</span>
             </div>
+            )}
 
             {/* 文本输入 */}
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="描述画面中的物体、风格及文字排版，注重指令精准与细节还原。"
+              placeholder={isEmpty ? "描述画面中的物体、风格及文字排版，注重指令精准与细节还原。" : "继续生成..."}
               className="w-full bg-transparent text-[#e4e4e7] placeholder-[#52525b] text-sm resize-none outline-none min-h-[48px] max-h-[120px]"
               rows={2}
               onKeyDown={(e) => {
@@ -557,8 +559,8 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               }}
             />
 
-            {/* 参数弹出面板 */}
-            {activeTab && (
+            {/* 参数弹出面板 - 仅空状态时显示 */}
+            {activeTab && isEmpty && (
               <div className="mt-2 pt-2 border-t border-white/[0.06]">
                 {activeTab === 'style' && (
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -617,6 +619,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             )}
 
             {/* 底部工具栏 */}
+            {isEmpty ? (
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06]">
               <div className="flex items-center gap-1">
                 {/* 风格标签按钮 */}
@@ -667,6 +670,11 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                 <SendButton onClick={handleGenerate} disabled={!prompt.trim() || isGenerating} loading={isGenerating} text="生成" />
               </div>
             </div>
+            ) : (
+            <div className="flex items-center justify-end mt-3 pt-3 border-t border-white/[0.06]">
+              <SendButton onClick={handleGenerate} disabled={!prompt.trim() || isGenerating} loading={isGenerating} text="发送" />
+            </div>
+            )}
           </div>
         </div>
       </div>
