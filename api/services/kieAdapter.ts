@@ -90,7 +90,7 @@ export async function queryKieTask(
   apiKey: string,
   taskId: string,
 ): Promise<KieTaskResult> {
-  const url = `${baseUrl.replace(/\/+$/, '')}/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`;
+  const url = `${baseUrl.replace(/\/+$/, '')}/api/v1/jobs/taskInfo?taskId=${encodeURIComponent(taskId)}`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -101,9 +101,14 @@ export async function queryKieTask(
 
   const raw = await response.json().catch(() => ({})) as KieApiResponse<KieTaskResult>;
 
-  // data 为 null 说明任务还在处理中，返回 pending 状态而不是抛错
+  // data 为 null 说明任务还在处理中，返回 pending 状态
   if (raw.code === 200 && raw.data) {
-    return raw.data;
+    // resultUrl 可能是数组，归一化为字符串
+    const data = raw.data as Record<string, unknown>;
+    if (Array.isArray(data.resultUrl)) {
+      data.resultUrl = data.resultUrl[0] as string;
+    }
+    return data as KieTaskResult;
   }
 
   // 非200但也不是服务端错误 → 任务尚未就绪，返回 pending

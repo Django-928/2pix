@@ -110,11 +110,9 @@ export async function pollKieTask(
       const isFailed = ['failed', 'failure'].includes(statusLower);
 
       if (isSuccess) {
-        const url =
-          task.resultUrl ||
-          task.image_url ||
-          task.video_url ||
-          (task as Record<string, unknown>).url;
+        // resultUrl 可能是数组，取第一个
+        let url = task.resultUrl || task.image_url || task.video_url || (task as Record<string, unknown>).url;
+        if (Array.isArray(url)) url = url[0];
         if (typeof url === 'string') {
           if (onProgress) onProgress(100);
           return { url, status: 'Success', raw: task as Record<string, unknown> };
