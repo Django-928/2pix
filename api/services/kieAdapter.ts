@@ -106,11 +106,28 @@ export async function queryKieTask(
 
   // data 为 null 说明任务还在处理中，返回 pending 状态
   if (raw.code === 200 && raw.data) {
-    // resultUrl 可能是数组，归一化为字符串
     const data = raw.data as Record<string, unknown>;
-    if (Array.isArray(data.resultUrl)) {
-      data.resultUrl = data.resultUrl[0] as string;
+
+    // KIE 新版API把结果放在 resultJson JSON字符串中，需要解析到顶层
+    if (typeof data.resultJson === 'string' && data.resultJson) {
+      try {
+        const parsed = JSON.parse(data.resultJson) as Record<string, unknown>;
+        // 将 resultJson 中的字段提升到顶层（不覆盖已有字段）
+        for (const [key, value] of Object.entries(parsed)) {
+          if (data[key] === undefined || data[key] === null) {
+            data[key] = value;
+          }
+        }
+      } catch {
+        // resultJson 解析失败，忽略
+      }
     }
+
+    // resultUrl/resultUrls 可能是数组，归一化为字符串
+    let url = data.resultUrl || data.resultUrls;
+    if (Array.isArray(url)) url = url[0];
+    if (url) data.resultUrl = url;
+
     return data as KieTaskResult;
   }
 
