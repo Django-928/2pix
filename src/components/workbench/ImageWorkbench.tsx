@@ -88,9 +88,8 @@ function ImageGrid({
   onPreview: (url: string) => void;
   onDownload: (url: string, index: number) => void;
 }) {
-  const validCount = images.filter((img) => img !== '').length;
   return (
-    <div className={`grid gap-2.5 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+    <div className={`grid gap-2.5 ${images.length === 1 ? 'grid-cols-1 max-w-md' : 'grid-cols-2 max-w-lg'}`}>
       {images.map((img, i) => {
         // 空字符串表示正在生成中的占位
         if (!img) {
@@ -102,7 +101,7 @@ function ImageGrid({
             className="group relative rounded-xl overflow-hidden border border-white/[0.08] bg-[var(--bg-card,#1c1c1e)] cursor-pointer"
             onClick={() => onPreview(img)}
           >
-            <img src={img} alt={`生成结果 ${i + 1}`} className="w-full h-auto object-cover" />
+            <img src={img} alt={`生成结果 ${i + 1}`} className="w-full h-auto object-cover rounded-xl" />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
               <button
                 onClick={(e) => { e.stopPropagation(); onPreview(img); }}
@@ -120,7 +119,7 @@ function ImageGrid({
           </div>
         );
       })}
-      {validCount === 0 && images.length === 0 && (
+      {images.length === 0 && (
         <ImagePlaceholder />
       )}
     </div>
@@ -415,18 +414,18 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
       {/* ── 对话流区域（可滚动） ── */}
       {!isEmpty && (
-        <div className="flex-shrink-0 max-h-[48px] px-4 pt-3 pb-1">
-          <DescriptionCard model={model} />
+        <div className="flex-shrink-0 px-4 pt-2 pb-1">
+          <p className="text-xs text-[#52525b]">{model.name} · {model.description?.slice(0, 40)}...</p>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5">
         {turns.map((turn) => (
-          <div key={turn.id} className="space-y-3">
+          <div key={turn.id} className="space-y-2.5">
             {/* 用户 prompt 气泡 - 靠右 */}
             <div className="flex justify-end">
-              <div className="max-w-[80%]">
-                <div className="bg-white/[0.06] rounded-2xl rounded-br-md px-4 py-3">
+              <div className="max-w-[70%]">
+                <div className="bg-white/[0.06] rounded-2xl rounded-br-md px-4 py-2.5">
                   <p className="text-sm text-[#e4e4e7] leading-relaxed whitespace-pre-wrap">{turn.prompt}</p>
                 </div>
                 <ParamTags
@@ -440,7 +439,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             {/* AI 响应区域 - 靠左 */}
             <div className="flex justify-start">
               <div className="max-w-[85%] space-y-2.5">
-                {turn.status === 'generating' && (
+                {turn.status === 'generating' && turn.images.length === 0 && (
                   <GeneratingCard
                     progress={turn.progress}
                     count={(turn.params.count as number) || numImages}
