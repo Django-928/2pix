@@ -181,9 +181,9 @@ export default function Sidebar() {
                   <div className="model-icon-wrapper">
                     <div
                       className="model-icon-svg"
-                      style={model.icon.startsWith('http') ? { padding: 0, overflow: 'hidden', borderRadius: '6px' } : { fontSize: '18px' }}
+                      style={{ fontSize: '18px' }}
                     >
-                      {model.icon.startsWith('http') ? (<img src={model.icon} alt={model.name} className="w-5 h-5 object-cover rounded" />) : (model.icon)}
+                      {model.icon}
                     </div>
                   </div>
                   <div className="model-info">

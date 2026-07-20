@@ -3,27 +3,14 @@ import type { AIModel } from '@/data/models';
 
 /* ── 模型 Logo（大图标） ── */
 export function ModelLogo({ model }: { model: AIModel }) {
-  const iconMap: Record<string, string> = {
-    'gpt-5.5': '🟢', 'gpt-4o': '🟢', 'gpt-4o-mini': '🟢',
-    'claude-opus': '🟠', 'claude-sonnet': '🟠',
-    'gemini-3-pro': '🔵', 'gemini-flash': '🔵',
-    'grok-3': '⚫',
-    'deepseek-v3': '🔷', 'deepseek-r1': '🔷',
-    'qwen-3.7': '🦋', 'glm-5.2': '🌟', 'kimi-k2': '🌙', 'doubao-pro': '🫘',
-    'multi-model-collab': '🤝',
-    'gpt-image-2': '🟢', 'midjourney-v7': '🎨', 'flux-1-pro': '⚡', 'flux-dev': '⚡',
-    'nano-banana': '🍌', 'seedream-5': '🌙', 'jimeng-3': '💫', 'wan-2.1': '🦋',
-    'hunyuan-image': '🔮', 'stable-diffusion-3': '🟣', 'dall-e-3': '🟢',
-    'sora-2': '🟢', 'veo-3.1': '🔵', 'kling-3': '🎬', 'grok-video': '⚫',
-    'luma-dream': '💫', 'runway-gen3': '🎥', 'vidu-q3': '🎞️', 'seedance': '💃',
-    'hailuo-video': '🐚', 'pixverse-v3': '✨',
-    'suno-v4': '🎵', 'suno-v3': '🎵', 'hailuo-music': '🐚',
-    'gemini-tts': '🔵', 'elevenlabs-v3': '🎙️', 'openai-tts': '🟢',
-    'fish-speech': '🐟', 'edge-tts': '💙', 'doubao-tts': '🫘', 'iflytek-tts': '🎤',
-  };
+  if (model.icon.startsWith('http')) {
+    return (
+      <img src={model.icon} alt={model.name} className="w-10 h-10 rounded-xl object-cover" />
+    );
+  }
   return (
     <span className="text-4xl select-none" role="img" aria-label={model.name}>
-      {iconMap[model.id] || '✨'}
+      {model.icon}
     </span>
   );
 }
