@@ -33,10 +33,13 @@ router.post('/message', apiKeyOrAuthMiddleware, async (req: Request, res: Respon
       provider: result.provider,
       upstreamModel: result.upstreamModel,
     });
-  } catch {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[chat/message] generation failed:', msg);
     res.status(500).json({
       success: false,
       error: 'Failed to generate response',
+      detail: msg,
     });
   }
 });

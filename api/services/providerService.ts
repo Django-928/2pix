@@ -98,30 +98,7 @@ const defaultProviderConfig: ProviderConfig = {
 
 /** KIE 模型 ID → KIE API model 参数映射（自动回退） */
 const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: ProviderCategory }> = {
-  // Chat
-  'kimi-k3': { upstreamModel: 'kimi-k3', category: 'chat' },
-  'claude-fable-5': { upstreamModel: 'claude-fable-5', category: 'chat' },
-  'claude-haiku-4-5': { upstreamModel: 'claude-haiku-4.5', category: 'chat' },
-  'claude-opus-4-5': { upstreamModel: 'claude-opus-4.5', category: 'chat' },
-  'claude-opus-4-6': { upstreamModel: 'claude-opus-4.6', category: 'chat' },
-  'claude-opus-4-7': { upstreamModel: 'claude-opus-4.7', category: 'chat' },
-  'claude-opus-4-8': { upstreamModel: 'claude-opus-4.8', category: 'chat' },
-  'claude-sonnet-4-5': { upstreamModel: 'claude-sonnet-4.5', category: 'chat' },
-  'claude-sonnet-4-6': { upstreamModel: 'claude-sonnet-4.6', category: 'chat' },
-  'claude-sonnet-5': { upstreamModel: 'claude-sonnet-5', category: 'chat' },
-  'gemini-2.5-flash': { upstreamModel: 'gemini-2.5-flash', category: 'chat' },
-  'gemini-2.5-pro': { upstreamModel: 'gemini-2.5-pro', category: 'chat' },
-  'gemini-3-flash': { upstreamModel: 'gemini-3-flash', category: 'chat' },
-  'gemini-3-pro': { upstreamModel: 'gemini-3-pro', category: 'chat' },
-  'gemini-3-1-pro': { upstreamModel: 'gemini-3.1-pro', category: 'chat' },
-  'gemini-3-5-flash': { upstreamModel: 'gemini-3.5-flash', category: 'chat' },
-  'gpt-5-2': { upstreamModel: 'gpt-5.2', category: 'chat' },
-  'gpt-5-4': { upstreamModel: 'gpt-5.4', category: 'chat' },
-  'gpt-5-5': { upstreamModel: 'gpt-5.5', category: 'chat' },
-  'gpt-5-6': { upstreamModel: 'gpt-5-6', category: 'chat' },
-  'codex': { upstreamModel: 'openai-codex', category: 'chat' },
-  'grok-4-3': { upstreamModel: 'grok-4-3', category: 'chat' },
-  'grok-4-5': { upstreamModel: 'grok-4-5', category: 'chat' },
+  // Chat 模型走融川 provider，不在此映射
   // Image
   'gpt-image-2': { upstreamModel: 'gpt-image-2-text-to-image', category: 'image' },
   'flux-2': { upstreamModel: 'flux-2', category: 'image' },
