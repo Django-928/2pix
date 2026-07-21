@@ -111,12 +111,16 @@ export async function queryKieTask(
     // KIE 新版API把结果放在 resultJson JSON字符串中，需要解析到顶层
     if (typeof data.resultJson === 'string' && data.resultJson) {
       try {
-        const parsed = JSON.parse(data.resultJson) as Record<string, unknown>;
-        // 将 resultJson 中的字段提升到顶层（不覆盖已有字段）
+        let parsed = JSON.parse(data.resultJson) as Record<string, unknown>;
+        // 处理嵌套 JSON 字符串（resultJson 内的值可能还是 JSON 字符串）
         for (const [key, value] of Object.entries(parsed)) {
-          if (data[key] === undefined || data[key] === null) {
-            data[key] = value;
+          if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+            try { parsed[key] = JSON.parse(value); } catch { /* 保留原始字符串 */ }
           }
+        }
+        // 将 resultJson 中的字段提升到顶层（覆盖已有字段，确保最新的任务状态生效）
+        for (const [key, value] of Object.entries(parsed)) {
+          data[key] = value;
         }
       } catch {
         // resultJson 解析失败，忽略

@@ -77,6 +77,7 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
     res.status(500).json({
         success: false,
         error: msg,
+        detail: msg,
     });
 }
 });

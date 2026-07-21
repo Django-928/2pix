@@ -125,6 +125,7 @@ const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: Provi
   'recraft-remove-background': { upstreamModel: 'recraft-remove-background', category: 'image' },
   'topaz-image-upscale': { upstreamModel: 'topaz-image-upscale', category: 'image' },
   'wan-2-7-image': { upstreamModel: 'wan2.7-image', category: 'image' },
+  'wan2-7-image': { upstreamModel: 'wan2.7-image', category: 'image' },
   // Video
   'veo-3-1': { upstreamModel: 'veo-3.1', category: 'video' },
   'kling-3-0': { upstreamModel: 'kling-3.0', category: 'video' },
@@ -348,7 +349,7 @@ async function requestKieAsyncTask(input: ProviderGenerateInput, provider: Provi
 
 async function requestUpstream(input: ProviderGenerateInput, provider: ProviderItem, upstreamModel: string): Promise<ProviderGenerateResult> {
   // KIE 的 image/video 使用异步任务流程
-  if (isKieProvider(provider) && (input.category === 'image' || input.category === 'video')) {
+  if (isKieProvider(provider) && (input.category === 'image' || input.category === 'video' || input.category === 'audio')) {
     return requestKieAsyncTask(input, provider, upstreamModel);
   }
 

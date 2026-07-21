@@ -11,7 +11,7 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
   try {
     const result = await generateWithProvider({
       category: 'video',
-      localModel: model || 'sora-2',
+      localModel: model || 'kling-3-0',
       prompt: [prompt, style].filter(Boolean).join(' '),
       params: { resolution, duration, style, aspectRatio },
     });
@@ -23,10 +23,10 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
         name: String(prompt || '视频作品').slice(0, 80),
         type: 'video',
         status: result.status === 'pending' ? 'pending' : 'complete',
-        inputParams: { prompt, model: model || 'sora-2', resolution, duration, style, aspectRatio },
+        inputParams: { prompt, model: model || 'kling-3-0', resolution, duration, style, aspectRatio },
         outputUrl: result.url,
         provider: result.provider,
-        model: result.upstreamModel || model || 'sora-2',
+        model: result.upstreamModel || model || 'kling-3-0',
       });
     }
     
@@ -51,6 +51,7 @@ router.post('/generate', apiKeyOrAuthMiddleware, async (req: Request, res: Respo
     res.status(500).json({
       success: false,
       error: msg,
+      detail: msg,
     });
   }
 });

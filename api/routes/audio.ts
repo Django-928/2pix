@@ -11,7 +11,7 @@ router.post('/speech', apiKeyOrAuthMiddleware, async (req: Request, res: Respons
   try {
     const result = await generateWithProvider({
       category: 'audio',
-      localModel: model || 'openai-tts',
+      localModel: model || 'elevenlabs-tts',
       prompt: text,
       params: { voice, language, mode: 'speech' },
     });
@@ -23,10 +23,10 @@ router.post('/speech', apiKeyOrAuthMiddleware, async (req: Request, res: Respons
         name: String(text || '语音作品').slice(0, 80),
         type: 'audio',
         status: 'complete',
-        inputParams: { text, voice, language, model: model || 'openai-tts', mode: 'speech' },
+        inputParams: { prompt: text, model: model || 'elevenlabs-tts', voice, language, mode: 'speech' },
         outputUrl: result.url,
         provider: result.provider,
-        model: result.upstreamModel || model || 'openai-tts',
+        model: result.upstreamModel || model || 'elevenlabs-tts',
       });
     }
     
@@ -38,10 +38,13 @@ router.post('/speech', apiKeyOrAuthMiddleware, async (req: Request, res: Respons
       provider: result.provider,
       upstreamModel: result.upstreamModel,
     });
-  } catch {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[/audio/speech] 生成失败:', msg);
     res.status(500).json({
       success: false,
       error: 'Failed to generate speech',
+      detail: msg,
     });
   }
 });
@@ -52,7 +55,7 @@ router.post('/music', apiKeyOrAuthMiddleware, async (req: Request, res: Response
   try {
     const result = await generateWithProvider({
       category: 'audio',
-      localModel: model || 'suno-v4-5',
+      localModel: model || 'suno-api',
       prompt: prompt || `${genre || ''} ${mood || ''}`.trim(),
       params: { genre, mood, duration, mode: 'music' },
     });
@@ -64,10 +67,10 @@ router.post('/music', apiKeyOrAuthMiddleware, async (req: Request, res: Response
         name: String(prompt || `${genre || ''} ${mood || ''}`.trim() || '音乐作品').slice(0, 80),
         type: 'audio',
         status: 'complete',
-        inputParams: { genre, mood, duration, prompt, model: model || 'suno-v4-5', mode: 'music' },
+        inputParams: { prompt: prompt || `${genre || ''} ${mood || ''}`.trim(), genre, mood, duration, model: model || 'suno-api', mode: 'music' },
         outputUrl: result.url,
         provider: result.provider,
-        model: result.upstreamModel || model || 'suno-v4-5',
+        model: result.upstreamModel || model || 'suno-api',
       });
     }
     
@@ -79,15 +82,18 @@ router.post('/music', apiKeyOrAuthMiddleware, async (req: Request, res: Response
       provider: result.provider,
       upstreamModel: result.upstreamModel,
     });
-  } catch {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error('[/audio/music] 生成失败:', msg);
     res.status(500).json({
       success: false,
       error: 'Failed to generate music',
+      detail: msg,
     });
   }
 });
 
-router.post('/effects', async (req: Request, res: Response) => {
+router.post('/effects', apiKeyOrAuthMiddleware, async (req: Request, res: Response) => {
   void req
   
   try {

@@ -580,7 +580,7 @@ export default function UnifiedWorkbenchPage() {
                         )} flex items-center justify-center text-sm font-bold shadow-lg overflow-hidden`}
                         style={model.icon.startsWith('http') ? { padding: 0, background: 'transparent' } : {}}
                       >
-                        {model.icon.startsWith('http') ? (<img src={model.icon} alt={model.name} className="w-10 h-10 rounded-xl object-cover" />) : (model.icon)}
+                        {model.icon.startsWith('http') ? (<img src={model.icon} alt={model.name} className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />) : (model.icon)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -788,7 +788,7 @@ export default function UnifiedWorkbenchPage() {
                   className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${modelGradient} flex items-center justify-center mx-auto shadow-lg overflow-hidden`}
                   style={activeModel.icon.startsWith('http') ? { padding: 0, background: 'transparent' } : {}}
                 >
-                  {activeModel.icon.startsWith('http') ? (<img src={activeModel.icon} alt={activeModel.name} className="w-16 h-16 rounded-2xl object-cover" />) : (<span className="text-2xl font-bold text-white">{activeModel.icon}</span>)}
+                  {activeModel.icon.startsWith('http') ? (<img src={activeModel.icon} alt={activeModel.name} className="w-16 h-16 rounded-2xl object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />) : (<span className="text-2xl font-bold text-white">{activeModel.icon}</span>)}
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold text-white mb-1">{activeModel.name}</h1>
@@ -849,7 +849,8 @@ export default function UnifiedWorkbenchPage() {
                   </div>
                 </div>
 
-                {/* 参数 pills + 生成按钮 */}
+                {/* 参数 pills + 生成按钮（audio 不显示图片/视频参数） */}
+                {activeModel.category !== 'audio' && (
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 flex-wrap">
                     {paramConfig.map((param) => (
@@ -889,8 +890,10 @@ export default function UnifiedWorkbenchPage() {
                     )}
                   </button>
                 </div>
+                )}
 
-                {/* 参数抽屉 */}
+                {/* 参数抽屉（audio 不显示） */}
+                {activeModel.category !== 'audio' && (
                 <div
                   className={`transition-all duration-300 ease-in-out overflow-hidden ${
                     activeParamId ? 'max-h-[260px] opacity-100 mt-4' : 'max-h-0 opacity-0'
@@ -942,6 +945,7 @@ export default function UnifiedWorkbenchPage() {
                     )}
                   </div>
                 </div>
+                )}
 
                 {/* 底部积分提示 */}
                 <div className="flex items-center justify-between text-xs text-white/40 px-1">
@@ -1083,7 +1087,7 @@ export default function UnifiedWorkbenchPage() {
                             )} flex items-center justify-center text-[10px] font-bold shadow-md flex-shrink-0 overflow-hidden`}
                             style={activeModel.icon.startsWith('http') ? { padding: 0, background: 'transparent' } : {}}
                           >
-                            {activeModel.icon.startsWith('http') ? (<img src={activeModel.icon} alt={activeModel.name} className="w-8 h-8 rounded-lg object-cover" />) : (activeModel.icon)}
+                            {activeModel.icon.startsWith('http') ? (<img src={activeModel.icon} alt={activeModel.name} className="w-8 h-8 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />) : (activeModel.icon)}
                           </div>
                           )}
                           <div className="min-w-0">
