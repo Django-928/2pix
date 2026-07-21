@@ -199,8 +199,9 @@ export default function AdminModelsPage() {
       const params = new URLSearchParams();
       if (categoryTab) params.append('category', categoryTab);
       const query = params.toString() ? `?${params.toString()}` : '';
-      const res = await api.get<{ success: boolean; data: Model[] }>(`/admin/models${query}`);
-      setModels(res.data || []);
+      const res = await api.get<Model[]>(`/admin/models${query}`);
+      // api 工具已自动解包 data.data，res 直接就是模型数组
+      setModels(Array.isArray(res) ? res : []);
     } catch (err) {
       console.error('Failed to load models:', err);
     } finally {
