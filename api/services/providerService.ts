@@ -199,6 +199,10 @@ export function readProviderConfig(): ProviderConfig {
 }
 
 function resolveProvider(localModel: string, category: ProviderCategory) {
+  // 归一化模型 ID：前端用连字符（gpt-5-5），后端配置用点号（gpt-5.5）
+  const normalized = localModel.replace(/-/g, '.');
+  const modelIds = [localModel, normalized];
+
   const config = readProviderConfig();
   const enabledProviders = config.providers.filter((item) => item.enabled && item.apiKey && item.baseUrl);
   if (enabledProviders.length === 0) return null;
@@ -210,7 +214,7 @@ function resolveProvider(localModel: string, category: ProviderCategory) {
     );
     if (preferred) {
       const mapping = preferred.models.find(
-        (item) => item.enabled && item.category === category && (item.localModel === localModel || localModel.includes(item.localModel))
+        (item) => item.enabled && item.category === category && modelIds.some((mid) => mid === item.localModel || mid.includes(item.localModel))
       );
       if (mapping) {
         return { provider: preferred, mapping };
@@ -221,7 +225,7 @@ function resolveProvider(localModel: string, category: ProviderCategory) {
   // 在所有 enabled providers 中查找第一个有该模型映射的
   for (const p of enabledProviders) {
     const mapping = p.models.find(
-      (item) => item.enabled && item.category === category && (item.localModel === localModel || localModel.includes(item.localModel))
+      (item) => item.enabled && item.category === category && modelIds.some((mid) => mid === item.localModel || mid.includes(item.localModel))
     );
     if (mapping) {
       return { provider: p, mapping };
@@ -229,7 +233,7 @@ function resolveProvider(localModel: string, category: ProviderCategory) {
   }
 
   // KIE 自动回退：如果显式配置中未找到模型映射，尝试 KIE 内置映射
-  const kieMapping = KIE_MODEL_MAPPING[localModel];
+  const kieMapping = KIE_MODEL_MAPPING[localModel] || KIE_MODEL_MAPPING[normalized];
   if (kieMapping) {
     const kieProvider = enabledProviders.find((p) => isKieProvider(p));
     if (kieProvider) {
