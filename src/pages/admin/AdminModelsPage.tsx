@@ -581,7 +581,11 @@ export default function AdminModelsPage() {
                   <tr key={model.id} className="border-b border-purple-500/5 hover:bg-purple-500/5">
                     <td className="py-4 px-5">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl">{model.icon || '✨'}</span>
+                        {model.icon && model.icon.startsWith('http') ? (
+                          <img src={model.icon} alt={model.name} className="w-8 h-8 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        ) : (
+                          <span className="text-2xl">{model.icon || '✨'}</span>
+                        )}
                         <button
                           onClick={() => handleOpenIconEdit(model)}
                           className="p-1 rounded-lg text-dark-600 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
