@@ -258,5 +258,115 @@ publicRouter.get('/', (req: Request, res: Response): void => {
   }
 });
 
+/** POST /:id/icon - 上传模型图标（base64 方式） */
+adminRouter.post('/:id/icon', requirePermission('model:edit'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { icon } = req.body;
+    if (!icon || typeof icon !== 'string') {
+      res.status(400).json({ success: false, error: '无效的图标数据' });
+      return;
+    }
+
+    // 限制大小（base64 约 500KB 以内）
+    if (icon.length > 700000) {
+      res.status(400).json({ success: false, error: '图标文件过大，请选择 500KB 以内的图片' });
+      return;
+    }
+
+    // 验证 base64 格式
+    const dataUrlMatch = icon.match(/^data:image\/(png|jpeg|jpg|gif|webp);base64,/);
+    if (!dataUrlMatch) {
+      res.status(400).json({ success: false, error: '仅支持 PNG、JPG、GIF、WebP 格式' });
+      return;
+    }
+
+    // 检查模型是否存在
+    const model = db.prepare('SELECT id, icon FROM ai_models WHERE id = ?').get(id) as { id: string; icon: string | null } | undefined;
+    if (!model) {
+      res.status(404).json({ success: false, error: '模型不存在' });
+      return;
+    }
+
+    // 保存为文件到 data/model-icons 目录
+    const fs = await import('fs');
+    const path = await import('path');
+    const { dataDir } = await import('../../db/index.js');
+    const iconDir = path.join(dataDir, 'model-icons');
+
+    if (!fs.existsSync(iconDir)) {
+      fs.mkdirSync(iconDir, { recursive: true });
+    }
+
+    // 生成文件名
+    const ext = dataUrlMatch[1] === 'jpeg' || dataUrlMatch[1] === 'jpg' ? 'jpg' : dataUrlMatch[1];
+    const filename = `icon_${id}_${Date.now()}.${ext}`;
+    const filepath = path.join(iconDir, filename);
+
+    // 提取纯 base64 数据并写入文件
+    const base64Data = icon.replace(/^data:image\/\w+;base64,/, '');
+    fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
+
+    // 删除旧图标文件
+    if (model.icon && model.icon.startsWith('/api/admin/models/')) {
+      const oldFilename = model.icon.split('/').pop();
+      if (oldFilename) {
+        const oldPath = path.join(iconDir, oldFilename);
+        if (fs.existsSync(oldPath)) {
+          try { fs.unlinkSync(oldPath); } catch { /* ignore */ }
+        }
+      }
+    }
+
+    // 更新数据库
+    const iconUrl = `/api/admin/models/icon/${filename}`;
+    db.prepare('UPDATE ai_models SET icon = ? WHERE id = ?').run(iconUrl, id);
+
+    logOperation(req.user?.id, req.user?.username, 'update_model_icon', 'model', getClientIp(req), req.headers['user-agent'] || '', { modelId: id, filename });
+
+    res.json({ success: true, data: { icon: iconUrl } });
+  } catch (error) {
+    console.error('Upload model icon error:', error);
+    res.status(500).json({ success: false, error: '图标上传失败' });
+  }
+});
+
+/** GET /icon/:filename - 模型图标文件访问 */
+adminRouter.get('/icon/:filename', (req: Request, res: Response): void => {
+  try {
+    const { filename } = req.params;
+    if (!filename || filename.includes('..') || filename.includes('/')) {
+      res.status(400).json({ success: false, error: '无效的文件名' });
+      return;
+    }
+
+    const path = require('path');
+    const { dataDir } = require('../../db/index.js');
+    const filepath = path.join(dataDir, 'model-icons', filename);
+
+    const fs = require('fs');
+    if (!fs.existsSync(filepath)) {
+      res.status(404).json({ success: false, error: '图标不存在' });
+      return;
+    }
+
+    // 根据扩展名设置 Content-Type
+    const ext = path.extname(filename).toLowerCase();
+    const contentTypeMap: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+    };
+    res.setHeader('Content-Type', contentTypeMap[ext] || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile(filepath);
+  } catch (error) {
+    console.error('Get model icon error:', error);
+    res.status(500).json({ success: false, error: '获取图标失败' });
+  }
+});
+
 export default adminRouter;
 export { publicRouter };

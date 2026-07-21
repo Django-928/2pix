@@ -12,6 +12,7 @@ import {
   Download,
   Image,
   Database,
+  Upload,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
@@ -335,6 +336,45 @@ export default function AdminModelsPage() {
   const handleOpenIconEdit = (model: Model) => {
     setIconEditModel(model);
     setIconEditValue(model.icon || '');
+  };
+
+  /** 处理本地图片上传 */
+  const handleIconUpload = async (file: File) => {
+    if (!iconEditModel) return;
+    if (file.size > 500 * 1024) {
+      toast.error('图片不能超过 500KB');
+      return;
+    }
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('仅支持 PNG、JPG、GIF、WebP 格式');
+      return;
+    }
+
+    setIconSaving(true);
+    try {
+      // 转为 base64
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // 上传到服务器
+      const res = await api.post<{ icon: string }>(`/admin/models/${iconEditModel.id}/icon`, { icon: base64 });
+      const iconUrl = (res as { icon?: string })?.icon || (res as { data?: { icon?: string } })?.data?.icon || '';
+      if (iconUrl) {
+        setIconEditValue(iconUrl);
+        toast.success('图标上传成功');
+      } else {
+        toast.error('上传返回数据异常');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '图标上传失败');
+    } finally {
+      setIconSaving(false);
+    }
   };
 
   const handleSaveIcon = async () => {
@@ -920,6 +960,24 @@ export default function AdminModelsPage() {
                     className="w-full px-3 py-2.5 bg-dark-900/50 border border-purple-500/20 rounded-xl text-dark-200 text-sm focus:outline-none focus:border-purple-500/40 transition-colors"
                     placeholder="输入 emoji 或图标 URL"
                   />
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer border transition-all ${iconSaving ? 'opacity-50 cursor-not-allowed border-purple-500/10' : 'border-purple-500/20 text-purple-300 hover:bg-purple-500/10'}`}>
+                      <Upload size={14} />
+                      上传本地图片
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                        className="hidden"
+                        disabled={iconSaving}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleIconUpload(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                    <span className="text-[10px] text-dark-500">PNG/JPG/GIF/WebP, 最大 500KB</span>
+                  </div>
                 </div>
               </div>
 
