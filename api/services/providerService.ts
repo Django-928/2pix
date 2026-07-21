@@ -232,6 +232,19 @@ function resolveProvider(localModel: string, category: ProviderCategory) {
     }
   }
 
+  // 默认配置回退：DB 配置可能缺少模型，在默认配置中再找一次
+  const defaultEnabled = defaultProviderConfig.providers.filter((item) => item.enabled && item.apiKey && item.baseUrl);
+  for (const p of defaultEnabled) {
+    const mapping = p.models.find(
+      (item) => item.enabled && item.category === category && modelIds.some((mid) => mid === item.localModel || mid.includes(item.localModel))
+    );
+    if (mapping) {
+      // 找到默认 provider，用 DB 中对应的 provider 实例（保留真实 apiKey/baseUrl）
+      const realProvider = enabledProviders.find((ep) => ep.id === p.id) || p;
+      return { provider: realProvider, mapping };
+    }
+  }
+
   // KIE 自动回退：如果显式配置中未找到模型映射，尝试 KIE 内置映射
   const kieMapping = KIE_MODEL_MAPPING[localModel] || KIE_MODEL_MAPPING[normalized];
   if (kieMapping) {
