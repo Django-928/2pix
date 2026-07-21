@@ -258,6 +258,43 @@ publicRouter.get('/', (req: Request, res: Response): void => {
   }
 });
 
+/** GET /icon/:filename - 模型图标文件访问（公开路由，<img> 标签可直接访问） */
+publicRouter.get('/icon/:filename', (req: Request, res: Response): void => {
+  try {
+    const { filename } = req.params;
+    if (!filename || filename.includes('..') || filename.includes('/')) {
+      res.status(400).json({ success: false, error: '无效的文件名' });
+      return;
+    }
+
+    const path = require('path');
+    const { dataDir } = require('../../db/index.js');
+    const filepath = path.join(dataDir, 'model-icons', filename);
+
+    const fs = require('fs');
+    if (!fs.existsSync(filepath)) {
+      res.status(404).json({ success: false, error: '图标不存在' });
+      return;
+    }
+
+    // 根据扩展名设置 Content-Type
+    const ext = path.extname(filename).toLowerCase();
+    const contentTypeMap: Record<string, string> = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+    };
+    res.setHeader('Content-Type', contentTypeMap[ext] || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile(filepath);
+  } catch (error) {
+    console.error('Get model icon error:', error);
+    res.status(500).json({ success: false, error: '获取图标失败' });
+  }
+});
+
 /** POST /:id/icon - 上传模型图标（base64 方式） */
 adminRouter.post('/:id/icon', requirePermission('model:edit'), async (req: Request, res: Response): Promise<void> => {
   try {
@@ -308,7 +345,7 @@ adminRouter.post('/:id/icon', requirePermission('model:edit'), async (req: Reque
     fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
 
     // 删除旧图标文件
-    if (model.icon && model.icon.startsWith('/api/admin/models/')) {
+    if (model.icon && model.icon.startsWith('/api/models/icon/')) {
       const oldFilename = model.icon.split('/').pop();
       if (oldFilename) {
         const oldPath = path.join(iconDir, oldFilename);
@@ -319,7 +356,7 @@ adminRouter.post('/:id/icon', requirePermission('model:edit'), async (req: Reque
     }
 
     // 更新数据库
-    const iconUrl = `/api/admin/models/icon/${filename}`;
+    const iconUrl = `/api/models/icon/${filename}`;
     db.prepare('UPDATE ai_models SET icon = ? WHERE id = ?').run(iconUrl, id);
 
     logOperation(req.user?.id, req.user?.username, 'update_model_icon', 'model', getClientIp(req), req.headers['user-agent'] || '', { modelId: id, filename });
@@ -328,43 +365,6 @@ adminRouter.post('/:id/icon', requirePermission('model:edit'), async (req: Reque
   } catch (error) {
     console.error('Upload model icon error:', error);
     res.status(500).json({ success: false, error: '图标上传失败' });
-  }
-});
-
-/** GET /icon/:filename - 模型图标文件访问 */
-adminRouter.get('/icon/:filename', (req: Request, res: Response): void => {
-  try {
-    const { filename } = req.params;
-    if (!filename || filename.includes('..') || filename.includes('/')) {
-      res.status(400).json({ success: false, error: '无效的文件名' });
-      return;
-    }
-
-    const path = require('path');
-    const { dataDir } = require('../../db/index.js');
-    const filepath = path.join(dataDir, 'model-icons', filename);
-
-    const fs = require('fs');
-    if (!fs.existsSync(filepath)) {
-      res.status(404).json({ success: false, error: '图标不存在' });
-      return;
-    }
-
-    // 根据扩展名设置 Content-Type
-    const ext = path.extname(filename).toLowerCase();
-    const contentTypeMap: Record<string, string> = {
-      '.png': 'image/png',
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.gif': 'image/gif',
-      '.webp': 'image/webp',
-    };
-    res.setHeader('Content-Type', contentTypeMap[ext] || 'application/octet-stream');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.sendFile(filepath);
-  } catch (error) {
-    console.error('Get model icon error:', error);
-    res.status(500).json({ success: false, error: '获取图标失败' });
   }
 });
 
