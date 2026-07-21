@@ -167,6 +167,34 @@ const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: Provi
   'gemini-2.5-pro-preview-tts': { upstreamModel: 'gemini-2.5-pro-preview-tts', category: 'audio' },
   'gemini-3.1-flash-tts': { upstreamModel: 'gemini-3.1-flash-tts', category: 'audio' },
   'suno-api': { upstreamModel: 'suno-v5.5', category: 'audio' },
+  // Chat - Gemini（OpenAI 兼容接口：/{model}/v1/chat/completions）
+  'gemini-2.5-flash': { upstreamModel: 'gemini-2.5-flash', category: 'chat' },
+  'gemini-2.5-pro': { upstreamModel: 'gemini-2.5-pro', category: 'chat' },
+  'gemini-3-flash': { upstreamModel: 'gemini-3-flash', category: 'chat' },
+  'gemini-3-pro': { upstreamModel: 'gemini-3-pro', category: 'chat' },
+  'gemini-3-1-pro': { upstreamModel: 'gemini-3.1-pro', category: 'chat' },
+  'gemini-3-5-flash': { upstreamModel: 'gemini-3-5-flash', category: 'chat' },
+  // Chat - GPT 5.2（OpenAI 兼容接口：/gpt-5-2/v1/chat/completions）
+  'gpt-5-2': { upstreamModel: 'gpt-5-2', category: 'chat' },
+  // Chat - GPT 5.4/5.5/5.6（KIE codex response 接口：/codex/v1/responses）
+  'gpt-5-4': { upstreamModel: 'gpt-5-4', category: 'chat' },
+  'gpt-5-5': { upstreamModel: 'gpt-5-5', category: 'chat' },
+  'gpt-5-6': { upstreamModel: 'gpt-5-6-luna', category: 'chat' },
+  // Chat - Codex（KIE api response 接口：/api/v1/responses）
+  'codex': { upstreamModel: 'gpt-5-codex', category: 'chat' },
+  // Chat - Grok（KIE grok response 接口：/grok/v1/responses）
+  'grok-4-3': { upstreamModel: 'grok-4-3', category: 'chat' },
+  'grok-4-5': { upstreamModel: 'grok-4-5', category: 'chat' },
+  // Chat - Claude（Anthropic 原生接口：/claude/v1/messages）
+  'claude-opus-4-5': { upstreamModel: 'claude-opus-4-5', category: 'chat' },
+  'claude-opus-4-6': { upstreamModel: 'claude-opus-4-6', category: 'chat' },
+  'claude-opus-4-7': { upstreamModel: 'claude-opus-4-7', category: 'chat' },
+  'claude-opus-4-8': { upstreamModel: 'claude-opus-4-8', category: 'chat' },
+  'claude-sonnet-4-5': { upstreamModel: 'claude-sonnet-4-5', category: 'chat' },
+  'claude-sonnet-4-6': { upstreamModel: 'claude-sonnet-4-6', category: 'chat' },
+  'claude-sonnet-5': { upstreamModel: 'claude-sonnet-5', category: 'chat' },
+  'claude-fable-5': { upstreamModel: 'claude-fable-5', category: 'chat' },
+  'claude-haiku-4-5': { upstreamModel: 'claude-haiku-4-5', category: 'chat' },
 };
 
 export function readProviderConfig(): ProviderConfig {
@@ -301,7 +329,73 @@ function extractContent(raw: unknown): string | undefined {
   return undefined;
 }
 
+/** 从 Anthropic Messages API 响应格式中提取文本内容
+ * Anthropic 响应格式: { content: [{ type: "text", text: "..." }, { type: "tool_use", ... }] }
+ */
+function extractAnthropicContent(raw: unknown): string | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const data = raw as Record<string, unknown>;
+  const contentArr = data.content;
+  if (!Array.isArray(contentArr)) return undefined;
+  const textBlocks = contentArr
+    .filter((block: unknown) => {
+      const b = block as Record<string, unknown>;
+      return b?.type === 'text' && typeof b.text === 'string';
+    })
+    .map((block: unknown) => (block as Record<string, unknown>).text as string);
+  return textBlocks.length > 0 ? textBlocks.join('') : undefined;
+}
 
+/** KIE 聊天 API 端点类型 */
+type KieChatApiType = 'claude' | 'codex-response' | 'grok-response' | 'openai-compatible';
+
+/** 判断 KIE 聊天模型使用的端点类型
+ * - claude: /claude/v1/messages (Anthropic 原生格式)
+ * - codex-response: /codex/v1/responses (GPT 5.4/5.5/5.6) 或 /api/v1/responses (Codex 系列)
+ * - grok-response: /grok/v1/responses (Grok 系列)
+ * - openai-compatible: /{model}/v1/chat/completions (Gemini, GPT 5.2)
+ */
+function getKieChatApiType(upstreamModel: string): KieChatApiType {
+  if (upstreamModel.startsWith('claude')) return 'claude';
+  if (upstreamModel.startsWith('grok')) return 'grok-response';
+  // GPT 5.4 / 5.5 / 5.6 系列 → /codex/v1/responses
+  if (/^gpt-5-[456]/.test(upstreamModel)) return 'codex-response';
+  // Codex 系列 (gpt-5-codex, gpt-5.1-codex 等) → /api/v1/responses
+  if (upstreamModel.includes('codex')) return 'codex-response';
+  // Gemini, GPT 5.2 → OpenAI 兼容 /{model}/v1/chat/completions
+  return 'openai-compatible';
+}
+
+/** 将 OpenAI messages 格式转换为 KIE responses input 格式
+ * OpenAI: [{ role: "user", content: "Hello" }]
+ * KIE:    [{ role: "user", content: [{ type: "input_text", text: "Hello" }] }]
+ */
+function convertToKieResponsesInput(messages: Array<{ role: string; content: string }>) {
+  return messages.map((msg) => ({
+    role: msg.role,
+    content: [{ type: 'input_text', text: msg.content }],
+  }));
+}
+
+/** 从 KIE responses 响应格式中提取文本内容
+ * 响应格式: { output: [{ type: "message", content: [{ type: "output_text", text: "..." }] }] }
+ */
+function extractKieResponsesContent(raw: unknown): string | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const data = raw as Record<string, unknown>;
+  const output = data.output;
+  if (!Array.isArray(output)) return undefined;
+  for (const item of output) {
+    const o = item as Record<string, unknown>;
+    if (o.type === 'message' && Array.isArray(o.content)) {
+      const textBlocks = (o.content as Array<Record<string, unknown>>)
+        .filter((c) => c?.type === 'output_text' && typeof c.text === 'string')
+        .map((c) => c.text as string);
+      if (textBlocks.length > 0) return textBlocks.join('');
+    }
+  }
+  return undefined;
+}
 
 /** 判断是否为 KIE provider */
 function isKieProvider(provider: ProviderItem): boolean {
@@ -365,16 +459,59 @@ async function requestUpstream(input: ProviderGenerateInput, provider: ProviderI
     let body: Record<string, unknown>;
 
     if (input.category === 'chat') {
-      // 聊天类使用 OpenAI 兼容的 /chat/completions 标准接口
-      endpoint = `${base}/chat/completions`;
       const messages = (input.params?.messages as Array<{ role: string; content: string }> | undefined) || [
         { role: 'user', content: input.prompt },
       ];
-      body = {
-        model: upstreamModel,
-        messages,
-        stream: true,
-      };
+
+      if (isKieProvider(provider)) {
+        const apiType = getKieChatApiType(upstreamModel);
+        switch (apiType) {
+          case 'claude': {
+            // KIE Claude: Anthropic 原生接口 /claude/v1/messages
+            endpoint = `${baseUrl}/claude/v1/messages`;
+            body = { model: upstreamModel, messages, max_tokens: 4096, stream: false };
+            break;
+          }
+          case 'codex-response': {
+            // KIE GPT 5.4/5.5/5.6 → /codex/v1/responses
+            // KIE Codex 系列 (gpt-5-codex 等) → /api/v1/responses
+            const isCodexSeries = upstreamModel.includes('codex');
+            endpoint = isCodexSeries
+              ? `${baseUrl}/api/v1/responses`
+              : `${baseUrl}/codex/v1/responses`;
+            body = {
+              model: upstreamModel,
+              input: convertToKieResponsesInput(messages),
+              stream: false,
+            };
+            break;
+          }
+          case 'grok-response': {
+            // KIE Grok: /grok/v1/responses
+            endpoint = `${baseUrl}/grok/v1/responses`;
+            body = {
+              model: upstreamModel,
+              input: convertToKieResponsesInput(messages),
+              stream: false,
+            };
+            break;
+          }
+          default: {
+            // KIE Gemini/GPT 5.2: OpenAI 兼容 /{model}/v1/chat/completions
+            endpoint = `${baseUrl}/${upstreamModel}/v1/chat/completions`;
+            body = { model: upstreamModel, messages, stream: false };
+            break;
+          }
+        }
+      } else {
+        // 标准 OpenAI 兼容接口
+        endpoint = `${base}/chat/completions`;
+        body = {
+          model: upstreamModel,
+          messages,
+          stream: true,
+        };
+      }
     } else {
       // 图片/视频/音频生成类使用 /images/generations 或通用 /generate
       endpoint = input.category === 'image'
@@ -428,9 +565,24 @@ async function requestUpstream(input: ProviderGenerateInput, provider: ProviderI
       raw = { stream: true, content: fullContent, model: upstreamModel };
     } else {
       raw = await response.json().catch(() => ({}));
-      const openaiContent = extractOpenAIChatContent(raw);
+      // 根据 KIE 端点类型选择对应的响应解析器
+      if (isKieProvider(provider)) {
+        const apiType = getKieChatApiType(upstreamModel);
+        if (apiType === 'claude') {
+          // Anthropic 格式: { content: [{ type: "text", text: "..." }] }
+          content = extractAnthropicContent(raw) || extractContent(raw);
+        } else if (apiType === 'codex-response' || apiType === 'grok-response') {
+          // KIE responses 格式: { output: [{ type: "message", content: [{ type: "output_text", text: "..." }] }] }
+          content = extractKieResponsesContent(raw) || extractContent(raw);
+        } else {
+          // OpenAI 兼容格式
+          content = extractOpenAIChatContent(raw) || extractContent(raw);
+        }
+      } else {
+        const openaiContent = extractOpenAIChatContent(raw);
+        content = openaiContent || extractContent(raw);
+      }
       const rawUrl = extractUrl(raw);
-      content = openaiContent || extractContent(raw);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       void url;
       return {
