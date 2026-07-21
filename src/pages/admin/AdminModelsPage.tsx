@@ -11,9 +11,11 @@ import {
   PlugZap,
   Download,
   Image,
+  Database,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
+import { aiModels as builtinModels } from '@/data/models';
 
 interface Model {
   id: string;
@@ -183,6 +185,7 @@ export default function AdminModelsPage() {
   const [iconEditModel, setIconEditModel] = useState<Model | null>(null);
   const [iconEditValue, setIconEditValue] = useState('');
   const [iconSaving, setIconSaving] = useState(false);
+  const [syncingBuiltin, setSyncingBuiltin] = useState(false);
 
   useEffect(() => {
     loadModels();
@@ -283,6 +286,48 @@ export default function AdminModelsPage() {
       toast.error(err instanceof Error ? err.message : '导入失败');
     } finally {
       setSyncing(false);
+    }
+  };
+
+  /** 从内置模型库 (src/data/models.ts) 同步到数据库 */
+  const handleSyncBuiltinModels = async () => {
+    setSyncingBuiltin(true);
+    try {
+      const existingIds = new Set(models.map((m) => m.id));
+      let added = 0;
+      let skipped = 0;
+      for (const m of builtinModels) {
+        if (existingIds.has(m.id)) {
+          skipped++;
+          continue;
+        }
+        try {
+          await api.post('/admin/models', {
+            id: m.id,
+            name: m.name,
+            description: m.description || '',
+            icon: m.icon || '',
+            category: m.category,
+            status: 'active',
+            sort_order: 0,
+            is_new: m.isNew ? 1 : 0,
+            is_hot: m.isHot ? 1 : 0,
+          });
+          added++;
+        } catch {
+          // 模型可能已存在，跳过
+        }
+      }
+      if (added > 0) {
+        toast.success(`同步完成：新增 ${added} 个模型${skipped > 0 ? `，跳过 ${skipped} 个已存在` : ''}`);
+      } else {
+        toast.info(`所有 ${skipped} 个内置模型均已存在，无需同步`);
+      }
+      loadModels();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '同步内置模型失败');
+    } finally {
+      setSyncingBuiltin(false);
     }
   };
 
@@ -407,13 +452,24 @@ export default function AdminModelsPage() {
           <h1 className="text-2xl font-bold text-dark-100">模型管理</h1>
           <p className="text-dark-400 mt-1">管理平台所有 AI 模型</p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] text-white font-medium rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all"
-        >
-          <Plus size={18} />
-          新增模型
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSyncBuiltinModels}
+            disabled={syncingBuiltin}
+            className="flex items-center gap-2 px-4 py-2.5 glass border border-purple-500/20 text-purple-300 font-medium rounded-xl hover:bg-purple-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="将前端内置的 87 个 KIE 模型同步到数据库"
+          >
+            <Database size={18} className={syncingBuiltin ? 'animate-pulse' : ''} />
+            {syncingBuiltin ? '同步中...' : '同步内置模型'}
+          </button>
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] text-white font-medium rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all"
+          >
+            <Plus size={18} />
+            新增模型
+          </button>
+        </div>
       </div>
 
       <div className="glass rounded-2xl p-5">
