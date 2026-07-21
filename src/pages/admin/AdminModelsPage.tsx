@@ -904,8 +904,12 @@ export default function AdminModelsPage() {
             <div className="p-5 space-y-4">
               {/* 当前图标预览 */}
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-dark-900/50 border border-purple-500/20">
-                  <span className="text-3xl">{iconEditValue || '✨'}</span>
+                <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-dark-900/50 border border-purple-500/20 overflow-hidden">
+                  {iconEditValue && iconEditValue.startsWith('http') ? (
+                    <img src={iconEditValue} alt="图标预览" className="w-12 h-12 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  ) : (
+                    <span className="text-3xl">{iconEditValue || '✨'}</span>
+                  )}
                 </div>
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-dark-300 mb-2">图标字符或 URL</label>
@@ -913,7 +917,7 @@ export default function AdminModelsPage() {
                     type="text"
                     value={iconEditValue}
                     onChange={(e) => setIconEditValue(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-dark-900/50 border border-purple-500/20 rounded-xl text-dark-200 text-center text-xl focus:outline-none focus:border-purple-500/40 transition-colors"
+                    className="w-full px-3 py-2.5 bg-dark-900/50 border border-purple-500/20 rounded-xl text-dark-200 text-sm focus:outline-none focus:border-purple-500/40 transition-colors"
                     placeholder="输入 emoji 或图标 URL"
                   />
                 </div>
