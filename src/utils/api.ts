@@ -22,8 +22,14 @@ const request = async <T = unknown>(
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {}),
   };
+  if (options.headers) {
+    Object.entries(options.headers).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        headers[key] = value;
+      }
+    });
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

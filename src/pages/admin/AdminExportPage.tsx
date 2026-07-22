@@ -12,6 +12,13 @@ interface ExportStats {
   logs_count: number;
 }
 
+interface ImportResult {
+  successCount: number;
+  failCount: number;
+  total: number;
+  errors: string[];
+}
+
 interface ExportCard {
   id: string;
   label: string;
@@ -105,8 +112,7 @@ export default function AdminExportPage() {
       reader.onload = async () => {
         const base64 = (reader.result as string).split(',')[1];
         try {
-          const result = await api.post('/admin/ie/users/import', { file: base64 });
-          const data = result as unknown as { successCount: number; failCount: number; total: number; errors: string[] };
+          const data = await api.post<ImportResult>('/admin/ie/users/import', { file: base64 });
           toast.success(`导入完成：成功 ${data.successCount} 条，失败 ${data.failCount} 条，共 ${data.total} 条${data.errors.length > 0 ? '\n错误：' + data.errors.join('\n') : ''}`);
           loadStats().catch(() => undefined);
         } catch (error) {
@@ -201,7 +207,7 @@ export default function AdminExportPage() {
         {EXPORT_CARDS.map((card) => {
           const Icon = card.icon;
           const isExporting = exporting === card.id;
-          const relatedStat = stats ? (stats as unknown as Record<string, number>)[`${card.id}_count`] : 0;
+          const relatedStat = stats ? stats[`${card.id}_count` as keyof ExportStats] ?? 0 : 0;
 
           return (
             <div key={card.id} className="glass rounded-2xl p-5 hover:border-purple-500/20 transition-all">

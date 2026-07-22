@@ -23,6 +23,17 @@ export interface KieTaskPollingResult {
   raw?: Record<string, unknown>;
 }
 
+interface KieTask {
+  state?: string;
+  status?: string;
+  resultUrl?: string;
+  resultUrls?: string | string[];
+  image_url?: string;
+  video_url?: string;
+  url?: string;
+  [key: string]: unknown;
+}
+
 const API_BASE = '/api';
 
 function sleep(ms: number, signal?: AbortSignal): Promise<boolean> {
@@ -101,7 +112,7 @@ export async function pollKieTask(
       const data = await res.json();
 
       // 后端封装的格式：{ success, data: { state/status, resultUrl/image_url/video_url, ... } }
-      const task = data?.data ?? data;
+      const task: KieTask = data?.data ?? data;
 
       // KIE 状态归一化
       const rawStatus = task.state || task.status || '';
@@ -111,16 +122,16 @@ export async function pollKieTask(
 
       if (isSuccess) {
         // resultUrl/resultUrls 可能是数组，取第一个
-        let url = task.resultUrl || task.resultUrls || task.image_url || task.video_url || (task as Record<string, unknown>).url;
+        let url = task.resultUrl || task.resultUrls || task.image_url || task.video_url || task.url;
         if (Array.isArray(url)) url = url[0];
         if (typeof url === 'string') {
           if (onProgress) onProgress(100);
-          return { url, status: 'Success', raw: task as Record<string, unknown> };
+          return { url, status: 'Success', raw: task };
         }
       }
 
       if (isFailed) {
-        return { status: 'Failed', raw: task as Record<string, unknown> };
+        return { status: 'Failed', raw: task };
       }
 
       // 其他状态（Pending / Processing），继续轮询

@@ -75,6 +75,16 @@ interface UserUsage {
   created_at: string;
 }
 
+interface UserUpdatePayload {
+  email: string;
+  phone: string;
+  nickname: string;
+  role_id: number | null;
+  status: string;
+  balance: number;
+  password?: string;
+}
+
 interface UserDetailData {
   user: User;
   transactions: UserTransaction[];
@@ -205,7 +215,7 @@ export default function AdminUsersPage() {
     if (!editingUser) return;
     setSubmitting(true);
     try {
-      const updateData: Record<string, unknown> = {
+      const updateData: UserUpdatePayload = {
         email: formData.email,
         phone: formData.phone,
         nickname: formData.nickname,
