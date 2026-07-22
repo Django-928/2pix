@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from 'express';
-import db from '../../db/index.js';
+import path from 'path';
+import fs from 'fs';
+import db, { dataDir } from '../../db/index.js';
 import { authMiddleware, getClientIp, logOperation, requirePermission } from '../../utils/auth.js';
 
 // ========== 管理员路由（需要认证 + 权限）==========
@@ -267,11 +269,8 @@ publicRouter.get('/icon/:filename', (req: Request, res: Response): void => {
       return;
     }
 
-    const path = require('path');
-    const { dataDir } = require('../../db/index.js');
     const filepath = path.join(dataDir, 'model-icons', filename);
 
-    const fs = require('fs');
     if (!fs.existsSync(filepath)) {
       res.status(404).json({ success: false, error: '图标不存在' });
       return;
@@ -326,9 +325,6 @@ adminRouter.post('/:id/icon', requirePermission('model:edit'), async (req: Reque
     }
 
     // 保存为文件到 data/model-icons 目录
-    const fs = await import('fs');
-    const path = await import('path');
-    const { dataDir } = await import('../../db/index.js');
     const iconDir = path.join(dataDir, 'model-icons');
 
     if (!fs.existsSync(iconDir)) {
