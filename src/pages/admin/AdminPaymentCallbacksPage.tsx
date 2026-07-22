@@ -13,6 +13,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface PaymentCallback {
@@ -93,6 +94,7 @@ function getVerificationClass(status: string) {
 }
 
 export default function AdminPaymentCallbacksPage() {
+  const toast = useToast();
   const [data, setData] = useState<CallbackListData | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -128,8 +130,8 @@ export default function AdminPaymentCallbacksPage() {
 
       const result = await api.get<CallbackListData>(`/admin/billing/payment-callbacks?${params.toString()}`);
       setData(result);
-    } catch (error) {
-      console.error('Failed to load payment callbacks:', error);
+    } catch {
+      toast.error('加载支付回调记录失败');
     } finally {
       setLoading(false);
     }

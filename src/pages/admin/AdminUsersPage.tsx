@@ -147,8 +147,8 @@ export default function AdminUsersPage() {
 
       const data = await api.get<UserListData>(`/admin/users?${params.toString()}`);
       setUsers(data);
-    } catch (err) {
-      console.error('Failed to load users:', err);
+    } catch {
+      toast.error('加载用户列表失败');
     } finally {
       setLoading(false);
     }

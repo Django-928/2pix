@@ -84,8 +84,8 @@ export default function AdminBillingPage() {
         `/admin/billing/transactions?${params.toString()}`
       );
       setTransactions(data);
-    } catch (err) {
-      console.error('Failed to load transactions:', err);
+    } catch {
+      toast.error('加载交易记录失败');
     } finally {
       setLoading(false);
     }

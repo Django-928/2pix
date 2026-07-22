@@ -32,6 +32,7 @@ import { useStore } from '@/store/useStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import useAccountStore from '@/store/useAccountStore';
 import api from '@/utils/api';
+import { useToast } from '@/components/ui/Toast';
 import { getEstimatedCost, runBillableTask } from '@/utils/billing';
 
 type SlotType = 'image' | 'firstFrame' | 'lastFrame' | 'video' | 'audio' | 'text';
@@ -353,6 +354,7 @@ function getTaskImage(prompt: string, modelName: string) {
 }
 
 export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPageProps) {
+  const toast = useToast();
   const [activeModelId, setActiveModelId] = useState(officialVideoModels[0].id);
   const [modelQuery, setModelQuery] = useState('');
   const [prompt, setPrompt] = useState('');
@@ -539,7 +541,7 @@ export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPa
           const outputUrl = result.url || '';
           if (!outputUrl) {
             setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status: 'failed' as const, progress: 100 } : task)));
-            console.error('未返回视频地址');
+            toast.error('未返回视频地址');
             return;
           }
           setTasks((prev) => prev.map((task) => (task.id === taskId ? { ...task, status: 'complete', progress: 100, outputUrl } : task)));

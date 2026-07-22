@@ -576,9 +576,9 @@ Authorization: Bearer <API_KEY>
                 {/* 参考图预览 */}
                 {showReferencePreview && referenceImages.length > 0 && (
                   <div className="flex gap-2 flex-shrink-0">
-                    {referenceImages.map((img, idx) => (
+                    {referenceImages.map((img) => (
                       <div
-                        key={idx}
+                        key={img}
                         className="relative w-16 h-16 rounded-lg overflow-hidden border border-purple-500/30 bg-dark-800"
                       >
                         <img src={img} alt="参考图" className="w-full h-full object-cover" />

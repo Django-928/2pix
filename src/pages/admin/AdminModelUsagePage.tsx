@@ -13,6 +13,7 @@ import {
   Search,
   X,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface UsageRecord {
@@ -92,6 +93,7 @@ function formatNumber(value?: number) {
 }
 
 export default function AdminModelUsagePage() {
+  const toast = useToast();
   const [data, setData] = useState<UsageListData | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -126,8 +128,8 @@ export default function AdminModelUsagePage() {
 
       const result = await api.get<UsageListData>(`/admin/billing/usage?${params.toString()}`);
       setData(result);
-    } catch (error) {
-      console.error('Failed to load model usage:', error);
+    } catch {
+      toast.error('加载模型调用统计失败');
     } finally {
       setLoading(false);
     }

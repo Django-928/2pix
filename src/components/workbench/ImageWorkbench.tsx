@@ -7,6 +7,7 @@ import api from '@/utils/api';
 import { getEstimatedCost, runBillableTask } from '@/utils/billing';
 import { pollKieTask } from '@/utils/kieTaskPolling';
 import { useToast } from '@/components/ui/Toast';
+import { useFileDownload } from '@/hooks/useFileDownload';
 import { ModelLogo, DescriptionCard, SendButton, CostHint } from './shared';
 
 interface ProviderGenerationResponse {
@@ -93,11 +94,11 @@ function ImageGrid({
       {images.map((img, i) => {
         // 空字符串表示正在生成中的占位
         if (!img) {
-          return <ImagePlaceholder key={i} />;
+          return <ImagePlaceholder key={`placeholder-${i}`} />;
         }
         return (
           <div
-            key={i}
+            key={img}
             className="group relative rounded-xl overflow-hidden border border-white/[0.08] bg-[var(--bg-card,#1c1c1e)] cursor-pointer"
             onClick={() => onPreview(img)}
           >
@@ -171,6 +172,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   const [billingError, setBillingError] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState('写实');
+  const download = useFileDownload();
   const [aspectRatio, setAspectRatio] = useState('1:1');
   const [numImagesState, setNumImagesState] = useState(1);
   const [activeTab, setActiveTab] = useState<'style' | 'ratio' | 'count' | null>(null);
@@ -397,20 +399,11 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   };
 
   const handleDownload = async (url: string, index: number) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `generated-${model.id}-${index + 1}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch {
-      window.open(url, '_blank');
-    }
+    await download({
+      url,
+      filename: `generated-${model.id}-${index + 1}.png`,
+      fallback: () => window.open(url, '_blank'),
+    });
   };
 
   const samplePrompts = [
@@ -434,8 +427,8 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             <DescriptionCard model={model} />
           </div>
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-            {samplePrompts.map((text, i) => (
-              <PromptCard key={i} text={text} onClick={() => setPrompt(text)} />
+            {samplePrompts.map((text) => (
+              <PromptCard key={text} text={text} onClick={() => setPrompt(text)} />
             ))}
           </div>
         </div>
@@ -514,7 +507,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             {isEmpty && (
             <div className="flex items-center gap-2 mb-3 overflow-x-auto">
               {referenceImages.map((img, i) => (
-                <div key={i} className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/[0.08] flex-shrink-0 group">
+                <div key={`ref-img-${i}-${img}`} className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/[0.08] flex-shrink-0 group">
                   <img src={img} alt="参考图" className="w-full h-full object-cover" />
                   <button
                     onClick={() => handleRemoveRef(i)}

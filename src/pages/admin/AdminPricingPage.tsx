@@ -73,8 +73,8 @@ export default function AdminPricingPage() {
       setRechargePlans(plans);
       setEditMap({});
       setEditPlanMap({});
-    } catch (err) {
-      console.error('Failed to load pricing data:', err);
+    } catch {
+      toast.error('加载定价数据失败');
     } finally {
       setLoading(false);
     }

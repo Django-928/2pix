@@ -718,8 +718,8 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
             <DescriptionCard model={model} />
           </div>
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-            {samplePrompts.map((text, i) => (
-              <PromptCard key={i} text={text} onClick={() => setMessage(text)} />
+            {samplePrompts.map((text) => (
+              <PromptCard key={text} text={text} onClick={() => setMessage(text)} />
             ))}
           </div>
         </div>

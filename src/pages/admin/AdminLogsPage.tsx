@@ -12,6 +12,7 @@ import {
   Info,
   X,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 import api from '@/utils/api';
 
 interface OperationLog {
@@ -50,6 +51,7 @@ interface LogStats {
 }
 
 export default function AdminLogsPage() {
+  const toast = useToast();
   const [logs, setLogs] = useState<LogListData | null>(null);
   const [stats, setStats] = useState<LogStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -89,8 +91,8 @@ export default function AdminLogsPage() {
       ]);
       setLogs(logsData);
       setStats(statsData);
-    } catch (err) {
-      console.error('Failed to load logs:', err);
+    } catch {
+      toast.error('加载操作日志失败');
     } finally {
       setLoading(false);
     }

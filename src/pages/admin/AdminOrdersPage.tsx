@@ -150,8 +150,8 @@ export default function AdminOrdersPage() {
 
       const result = await api.get<OrderListData>(`/admin/billing/orders?${params.toString()}`);
       setData(result);
-    } catch (error) {
-      console.error('Failed to load orders:', error);
+    } catch {
+      toast.error('加载订单列表失败');
     } finally {
       setLoading(false);
     }

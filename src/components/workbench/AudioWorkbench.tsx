@@ -340,9 +340,9 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
 
           {/* 2x2 快捷提示词 */}
           <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-lg">
-            {QUICK_PROMPTS.map((prompt, idx) => (
+            {QUICK_PROMPTS.map((prompt) => (
               <PromptCard
-                key={idx}
+                key={prompt}
                 text={prompt}
                 onClick={() => setText(prompt)}
               />

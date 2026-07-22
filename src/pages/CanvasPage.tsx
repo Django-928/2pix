@@ -80,7 +80,7 @@ export default function CanvasPage() {
           imageCacheRef.current.set(url, img);
         };
         img.onerror = () => {
-          console.error(`Failed to load image: ${url}`);
+          // 静默忽略画布素材加载失败，避免控制台噪音
         };
         imageCacheRef.current.set(url, img);
       }

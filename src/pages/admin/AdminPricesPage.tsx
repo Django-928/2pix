@@ -51,8 +51,8 @@ export default function AdminPricesPage() {
     try {
       const data = await api.get<TokenPrice[]>('/admin/billing/prices');
       setPrices(data);
-    } catch (err) {
-      console.error('Failed to load prices:', err);
+    } catch {
+      toast.error('加载价格列表失败');
     } finally {
       setLoading(false);
     }

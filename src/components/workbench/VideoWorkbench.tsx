@@ -15,6 +15,7 @@ import api from '@/utils/api';
 import { getEstimatedCost, getEstimatedCostSync, runBillableTask } from '@/utils/billing';
 import { pollKieTask } from '@/utils/kieTaskPolling';
 import { useToast } from '@/components/ui/Toast';
+import { useFileDownload } from '@/hooks/useFileDownload';
 import { ModelLogo, DescriptionCard, ParamCapsule, SendButton, CostHint } from './shared';
 
 interface ProviderGenerationResponse {
@@ -73,6 +74,7 @@ function VideoCard({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const download = useFileDownload();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -102,20 +104,11 @@ function VideoCard({
   };
 
   const handleDownload = async () => {
-    try {
-      const response = await fetch(item.url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `video-${item.id}-${Date.now()}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch {
-      window.open(item.url, '_blank');
-    }
+    await download({
+      url: item.url,
+      filename: `video-${item.id}-${Date.now()}.mp4`,
+      fallback: () => window.open(item.url, '_blank'),
+    });
   };
 
   return (
@@ -220,6 +213,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [generatedVideos, setGeneratedVideos] = useState<VideoItem[]>([]);
   const [progress, setProgress] = useState(0);
+  const download = useFileDownload();
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadProjects = useStore((s) => s.loadProjects);
@@ -345,20 +339,11 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
 
   const handleDownload = async () => {
     if (!generatedVideo) return;
-    try {
-      const response = await fetch(generatedVideo);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `generated-video-${model.id}-${Date.now()}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch {
-      window.open(generatedVideo, '_blank');
-    }
+    await download({
+      url: generatedVideo,
+      filename: `generated-video-${model.id}-${Date.now()}.mp4`,
+      fallback: () => window.open(generatedVideo, '_blank'),
+    });
   };
 
   const togglePlay = () => {
@@ -412,8 +397,8 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
 
           {/* 快捷提示词 */}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
-            {samplePrompts.map((text, i) => (
-              <PromptCard key={i} text={text} onClick={() => setPrompt(text)} />
+            {samplePrompts.map((text) => (
+              <PromptCard key={text} text={text} onClick={() => setPrompt(text)} />
             ))}
           </div>
         </div>
@@ -509,7 +494,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
             <div className="flex items-center gap-2 mb-3 overflow-x-auto scrollbar-hide">
               {referenceImages.map((img, i) => (
                 <div
-                  key={i}
+                  key={`ref-video-${i}-${img}`}
                   className="relative flex-shrink-0 rounded-lg overflow-hidden group"
                   style={{
                     width: '48px',

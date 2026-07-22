@@ -62,8 +62,8 @@ export default function AdminRolesPage() {
       setRoles(rolesData);
       setAllPermissions(permsData);
       setExpandedModules(new Set(Object.keys(permsData)));
-    } catch (err) {
-      console.error('Failed to load roles:', err);
+    } catch {
+      toast.error('加载角色列表失败');
     } finally {
       setLoading(false);
     }
