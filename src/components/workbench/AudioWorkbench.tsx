@@ -15,6 +15,7 @@ import { useStore } from '@/store/useStore';
 import { useAccountStore } from '@/store/useAccountStore';
 import api from '@/utils/api';
 import { getEstimatedCost, runBillableTask } from '@/utils/billing';
+import { useMediaEvents } from '@/hooks/useMediaEvents';
 import { ModelLogo, DescriptionCard, SendButton, CostHint } from './shared';
 
 /* ── 类型定义 ── */
@@ -292,24 +293,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
   };
 
   /* ── audio 事件绑定 ── */
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => {
-      setIsPlaying(false);
-      setPlayingTrackId(null);
-    };
-    audio.addEventListener('play', onPlay);
-    audio.addEventListener('pause', onPause);
-    audio.addEventListener('ended', onEnded);
-    return () => {
-      audio.removeEventListener('play', onPlay);
-      audio.removeEventListener('pause', onPause);
-      audio.removeEventListener('ended', onEnded);
-    };
-  }, []);
+  useMediaEvents(audioRef, setIsPlaying, () => setPlayingTrackId(null));
 
   /* ── 生成按钮是否可用 ── */
   const canGenerate =

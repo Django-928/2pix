@@ -16,6 +16,7 @@ import { getEstimatedCost, getEstimatedCostSync, runBillableTask } from '@/utils
 import { pollKieTask } from '@/utils/kieTaskPolling';
 import { useToast } from '@/components/ui/Toast';
 import { useFileDownload } from '@/hooks/useFileDownload';
+import { useMediaEvents } from '@/hooks/useMediaEvents';
 import { ModelLogo, DescriptionCard, ParamCapsule, SendButton, CostHint } from './shared';
 
 interface ProviderGenerationResponse {
@@ -76,21 +77,7 @@ function VideoCard({
   const [isHovered, setIsHovered] = useState(false);
   const download = useFileDownload();
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => setIsPlaying(false);
-    video.addEventListener('play', onPlay);
-    video.addEventListener('pause', onPause);
-    video.addEventListener('ended', onEnded);
-    return () => {
-      video.removeEventListener('play', onPlay);
-      video.removeEventListener('pause', onPause);
-      video.removeEventListener('ended', onEnded);
-    };
-  }, []);
+  useMediaEvents(videoRef, setIsPlaying);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -357,21 +344,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
     }
   };
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => setIsPlaying(false);
-    video.addEventListener('play', onPlay);
-    video.addEventListener('pause', onPause);
-    video.addEventListener('ended', onEnded);
-    return () => {
-      video.removeEventListener('play', onPlay);
-      video.removeEventListener('pause', onPause);
-      video.removeEventListener('ended', onEnded);
-    };
-  }, [generatedVideo]);
+  useMediaEvents(videoRef, setIsPlaying);
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg-workbench, #0a0a0a)' }}>

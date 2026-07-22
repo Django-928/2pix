@@ -14,7 +14,6 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { SkeletonPage } from '@/components/ui/Skeleton';
 
 const Home = lazy(() => import('@/pages/Home'));
-const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const ImageGeneratorPage = lazy(() => import('@/pages/ImageGeneratorPage'));
 const VideoGeneratorPage = lazy(() => import('@/pages/VideoGeneratorPage'));
 const AudioGeneratorPage = lazy(() => import('@/pages/AudioGeneratorPage'));
@@ -344,20 +343,7 @@ export default function App() {
 
         <Route path="/aura" element={<AuraPage />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <UserRoute>
-              <WorkspaceLayout
-                modelName="工作台"
-                modelIcon="✨"
-                modelDescription="一站式 AI 创作平台，聚合 500+ 全球顶尖大模型。"
-              >
-                <Dashboard />
-              </WorkspaceLayout>
-            </UserRoute>
-          }
-        />
+        <Route path="/dashboard" element={<Navigate to="/home" replace />} />
 
         <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route
