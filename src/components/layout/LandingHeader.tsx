@@ -10,9 +10,19 @@ export default function LandingHeader() {
   const config = useSystemConfigStore((s) => s.config);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    let rafId: number | null = null;
+    const onScroll = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        setScrolled(window.scrollY > 20);
+      });
+    };
     window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const navLinks = [
@@ -97,6 +107,7 @@ export default function LandingHeader() {
           {/* 移动端菜单按钮 */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? '关闭菜单' : '打开菜单'}
             className="md:hidden p-2 rounded-lg text-white hover:bg-white/5 transition-colors"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

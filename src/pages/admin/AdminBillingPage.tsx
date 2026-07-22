@@ -280,6 +280,7 @@ export default function AdminBillingPage() {
           </div>
           <button
             onClick={loadTransactions}
+            aria-label="刷新账单"
             className="p-2.5 glass rounded-xl text-dark-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />

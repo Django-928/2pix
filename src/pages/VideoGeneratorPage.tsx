@@ -790,7 +790,7 @@ export default function VideoGeneratorPage({ generateTrigger }: VideoGeneratorPa
               {filteredTasks.map((task) => (
                 <article key={task.id} className="video-task-card glass">
                   <div className="video-task-preview">
-                    <img src={task.thumbnailUrl} alt={task.prompt} />
+                    <img src={task.thumbnailUrl} alt={task.prompt} loading="lazy" decoding="async" />
                     {task.status === 'generating' ? (
                       <div className="video-progress-layer">
                         <RefreshCw className="animate-spin" size={26} />

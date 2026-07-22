@@ -5,7 +5,7 @@ import type { AIModel } from '@/data/models';
 export function ModelLogo({ model }: { model: AIModel }) {
   if (model.icon.startsWith('http')) {
     return (
-      <img src={model.icon} alt={model.name} className="w-10 h-10 rounded-xl object-cover" />
+      <img src={model.icon} alt={model.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-xl object-cover" />
     );
   }
   return (

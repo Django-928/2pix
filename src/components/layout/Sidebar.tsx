@@ -183,7 +183,7 @@ export default function Sidebar() {
                       className="model-icon-svg"
                       style={model.icon.startsWith('http') ? { padding: 0, overflow: 'hidden', borderRadius: '6px' } : { fontSize: '18px' }}
                     >
-                      {model.icon.startsWith('http') ? (<img src={model.icon} alt={model.name} className="w-5 h-5 object-cover rounded" />) : (model.icon)}
+                      {model.icon.startsWith('http') ? (<img src={model.icon} alt={model.name} loading="lazy" decoding="async" className="w-5 h-5 object-cover rounded" />) : (model.icon)}
                     </div>
                   </div>
                   <div className="model-info">
@@ -223,6 +223,8 @@ export default function Sidebar() {
             <img
               src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=handsome%20young%20asian%20man%20portrait%20avatar%20anime%20style%20dark%20hair&image_size=square"
               alt="用户头像"
+              loading="lazy"
+              decoding="async"
               className="sidebar-user-avatar"
             />
             <span className="sidebar-user-status-dot"></span>

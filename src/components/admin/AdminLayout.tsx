@@ -62,7 +62,7 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 1024);
+  const [collapsed, setCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [oldPwd, setOldPwd] = useState('');
@@ -78,6 +78,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       initFromToken();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const handleResize = () => setCollapsed(window.innerWidth < 1024);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogout = () => {
     logout();

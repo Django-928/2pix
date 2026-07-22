@@ -198,7 +198,7 @@ export default function AdminWorksPage() {
       return <div className="text-xs text-dark-500">无输出</div>;
     }
     if (work.type === 'image') {
-      return <img src={work.outputUrl} alt={work.name} className="h-16 w-24 rounded-xl object-cover border border-purple-500/10" />;
+      return <img src={work.outputUrl} alt={work.name} loading="lazy" decoding="async" className="h-16 w-24 rounded-xl object-cover border border-purple-500/10" />;
     }
     if (work.type === 'video') {
       return <video src={work.outputUrl} className="h-16 w-24 rounded-xl object-cover border border-purple-500/10" muted />;

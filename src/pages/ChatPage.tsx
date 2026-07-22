@@ -122,6 +122,7 @@ export default function ChatPage() {
             <h2 className="font-display text-lg font-bold gradient-text">AI对话</h2>
             <button
               onClick={handleNewConversation}
+              aria-label="新建对话"
               className="p-2 rounded-lg bg-primary-600/20 text-primary-400 hover:bg-primary-600/40 transition-colors"
             >
               <Plus className="w-5 h-5" />

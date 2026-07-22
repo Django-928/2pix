@@ -517,7 +517,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
                     border: '1px solid rgba(255,255,255,0.08)',
                   }}
                 >
-                  <img src={img} alt="参考素材" className="w-full h-full object-cover" />
+                  <img src={img} alt="参考素材" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   <button
                     onClick={() => setReferenceImages((prev) => prev.filter((_, idx) => idx !== i))}
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"

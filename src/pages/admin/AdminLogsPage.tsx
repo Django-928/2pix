@@ -216,6 +216,7 @@ export default function AdminLogsPage() {
           </button>
           <button
             onClick={loadData}
+            aria-label="刷新日志"
             className="p-2.5 glass rounded-xl text-dark-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />

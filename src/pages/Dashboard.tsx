@@ -145,6 +145,8 @@ export default function Dashboard() {
                 <img
                   src={project.preview}
                   alt={project.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-dark-900/80 to-transparent"></div>

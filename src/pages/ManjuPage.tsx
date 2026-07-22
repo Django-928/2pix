@@ -440,7 +440,7 @@ export default function ManjuPage() {
                         </div>
                         <div className="flex-1">
                           {shot.imageUrl ? (
-                            <img src={shot.imageUrl} alt={shot.scene} className="w-full rounded-xl mb-2" />
+                            <img src={shot.imageUrl} alt={shot.scene} loading="lazy" decoding="async" className="w-full rounded-xl mb-2" />
                           ) : (
                             <div className="w-full h-32 rounded-xl bg-[#1c1c1c] border border-white/[0.08] flex items-center justify-center text-[#555] text-xs mb-2">
                               待生成

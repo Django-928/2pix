@@ -206,15 +206,23 @@ export default function CanvasPage() {
     const container = containerRef.current;
     if (!canvas || !container) return;
 
+    let rafId: number | null = null;
     const resizeCanvas = () => {
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
-      draw();
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        draw();
+      });
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
-    return () => window.removeEventListener('resize', resizeCanvas);
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [draw]);
 
   const getCanvasCoords = (e: React.MouseEvent) => {
@@ -370,6 +378,7 @@ export default function CanvasPage() {
                 key={t.id}
                 onClick={() => setTool(t.id)}
                 title={t.label}
+                aria-label={t.label}
                 className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
                   tool === t.id
                     ? 'bg-primary-600 text-white button-glow'
@@ -386,6 +395,7 @@ export default function CanvasPage() {
           <button
             onClick={() => setScale(scale * 1.2)}
             title="放大"
+            aria-label="放大"
             className="w-12 h-12 rounded-xl flex items-center justify-center text-dark-300 hover:bg-primary-600/20 hover:text-white transition-all"
           >
             <ZoomIn className="w-5 h-5" />
@@ -394,6 +404,7 @@ export default function CanvasPage() {
           <button
             onClick={() => setScale(scale * 0.8)}
             title="缩小"
+            aria-label="缩小"
             className="w-12 h-12 rounded-xl flex items-center justify-center text-dark-300 hover:bg-primary-600/20 hover:text-white transition-all"
           >
             <ZoomOut className="w-5 h-5" />
@@ -409,6 +420,7 @@ export default function CanvasPage() {
               disabled={historyIndex <= 0}
               className="p-2 rounded-lg text-dark-300 hover:bg-primary-600/20 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               title="撤销"
+              aria-label="撤销"
             >
               <Undo className="w-5 h-5" />
             </button>
@@ -417,6 +429,7 @@ export default function CanvasPage() {
               disabled={historyIndex >= history.length - 1}
               className="p-2 rounded-lg text-dark-300 hover:bg-primary-600/20 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               title="重做"
+              aria-label="重做"
             >
               <Redo className="w-5 h-5" />
             </button>
@@ -424,6 +437,7 @@ export default function CanvasPage() {
               onClick={() => setPanOffset({ x: 0, y: 0 })}
               className="p-2 rounded-lg text-dark-300 hover:bg-primary-600/20 hover:text-white transition-all"
               title="重置视图"
+              aria-label="重置视图"
             >
               <Grid3X3 className="w-5 h-5" />
             </button>
@@ -447,6 +461,7 @@ export default function CanvasPage() {
               disabled={!selectedElementId}
               className="p-2 rounded-lg text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               title="删除"
+              aria-label="删除"
             >
               <Trash2 className="w-5 h-5" />
             </button>
@@ -454,6 +469,7 @@ export default function CanvasPage() {
               onClick={handleClear}
               className="p-2 rounded-lg text-dark-300 hover:bg-primary-600/20 hover:text-white transition-all"
               title="清空画布"
+              aria-label="清空画布"
             >
               <Plus className="w-5 h-5 rotate-45" />
             </button>

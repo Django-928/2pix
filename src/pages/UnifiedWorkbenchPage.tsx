@@ -493,6 +493,8 @@ export default function UnifiedWorkbenchPage() {
               <img
                 src={authUser.avatar}
                 alt={displayName}
+                loading="lazy"
+                decoding="async"
                 className="w-7 h-7 rounded-full object-cover"
               />
             ) : (
@@ -580,7 +582,7 @@ export default function UnifiedWorkbenchPage() {
                         )} flex items-center justify-center text-sm font-bold shadow-lg overflow-hidden`}
                         style={model.icon.startsWith('http') ? { padding: 0, background: 'transparent' } : {}}
                       >
-                        {model.icon.startsWith('http') ? (<img src={model.icon} alt={model.name} className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />) : (model.icon)}
+                        {model.icon.startsWith('http') ? (<img src={model.icon} alt={model.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />) : (model.icon)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -1077,6 +1079,8 @@ export default function UnifiedWorkbenchPage() {
                             <img
                               src={task.outputUrl}
                               alt={task.name}
+                              loading="lazy"
+                              decoding="async"
                               className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-white/[0.08]"
                             />
                           )}
@@ -1087,7 +1091,7 @@ export default function UnifiedWorkbenchPage() {
                             )} flex items-center justify-center text-[10px] font-bold shadow-md flex-shrink-0 overflow-hidden`}
                             style={activeModel.icon.startsWith('http') ? { padding: 0, background: 'transparent' } : {}}
                           >
-                            {activeModel.icon.startsWith('http') ? (<img src={activeModel.icon} alt={activeModel.name} className="w-8 h-8 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />) : (activeModel.icon)}
+                            {activeModel.icon.startsWith('http') ? (<img src={activeModel.icon} alt={activeModel.name} loading="lazy" decoding="async" className="w-8 h-8 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />) : (activeModel.icon)}
                           </div>
                           )}
                           <div className="min-w-0">

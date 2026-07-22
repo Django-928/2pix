@@ -528,7 +528,7 @@ export default function AudioGeneratorPage() {
                         <Play className="w-10 h-10 text-white ml-1" />
                       )}
                     </button>
-                    <button className="w-12 h-12 rounded-full glassmorphism-light flex items-center justify-center hover:bg-primary-600/30 transition-colors">
+                    <button aria-label="下载音频" className="w-12 h-12 rounded-full glassmorphism-light flex items-center justify-center hover:bg-primary-600/30 transition-colors">
                       <Download className="w-6 h-6 text-dark-300" />
                     </button>
                   </div>

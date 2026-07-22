@@ -353,14 +353,14 @@ Authorization: Bearer <API_KEY>
     { id: 5, name: '角色5', avatar: 'https://cos.lingkeai.vip/uploads/2026.04/12/20260412204934_18a59cee096f77bcf149.png?imageMogr2/thumbnail/100x100^/gravity/center/crop/100x100/quality/80/format/webp' },
   ];
 
-  const actionMenuIcon = `
+  const ActionMenuIcon = () => (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="4" y="4" width="8.5" height="8.5" rx="2.2" fill="#00CAE0"/>
       <rect x="15.5" y="4" width="8.5" height="8.5" rx="2.2" fill="#A855F7"/>
       <rect x="4" y="15.5" width="8.5" height="8.5" rx="2.2" fill="#F59E0B"/>
       <rect x="15.5" y="15.5" width="8.5" height="8.5" rx="2.2" fill="#10B981"/>
     </svg>
-  `;
+  );
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -555,6 +555,8 @@ Authorization: Bearer <API_KEY>
                         <img
                           src={role.avatar}
                           alt={role.name}
+                          loading="lazy"
+                          decoding="async"
                           className="role-strip-avatar"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src =
@@ -695,10 +697,9 @@ Authorization: Bearer <API_KEY>
           onClick={() => setSettingsOpen(!settingsOpen)}
         >
           <span className="trigger-halo"></span>
-          <span
-            className="trigger-icon-wrap"
-            dangerouslySetInnerHTML={{ __html: actionMenuIcon }}
-          />
+          <span className="trigger-icon-wrap">
+            <ActionMenuIcon />
+          </span>
         </button>
 
         {/* 设置面板 */}
