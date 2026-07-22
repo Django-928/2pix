@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -44,21 +44,21 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const result = await api.get<DashboardData>('/admin/billing/dashboard');
       setData(result);
-    } catch (err) {
-      console.error('Failed to load dashboard:', err);
+    } catch {
+      // 静默失败：dashboard 数据非关键，刷新按钮可重试
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (loading) {
     return (
@@ -131,7 +131,7 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {stats.map((stat, idx) => {
+        {stats.map((stat) => {
           const Icon = stat.icon;
           const colorClasses: Record<string, string> = {
             purple: 'from-purple-500/20 to-purple-500/5 text-purple-400',
@@ -141,7 +141,7 @@ export default function AdminDashboardPage() {
           };
           return (
             <div
-              key={idx}
+              key={stat.label}
               className="glass rounded-2xl p-5 card-hover"
             >
               <div className="flex items-start justify-between mb-4">
@@ -320,8 +320,8 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="h-64 flex items-end gap-1">
-            {data?.sevenDayTrend?.map((day, idx) => (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+            {data?.sevenDayTrend?.map((day) => (
+              <div key={day.date} className="flex-1 flex flex-col items-center gap-2">
                 <div className="w-full flex flex-col gap-1 justify-end h-52">
                   <div
                     className="w-full bg-green-500/60 rounded-t transition-all hover:bg-green-500/80"
@@ -358,11 +358,11 @@ export default function AdminDashboardPage() {
             热门模型排行
           </h3>
           <div className="space-y-4">
-            {data?.topModels?.map((modelItem, idx) => {
+            {data?.topModels?.map((modelItem, index) => {
               const percent = (Number(modelItem.total_cost || 0) / totalModelCost) * 100;
               const colors = ['bg-purple-500', 'bg-pink-500', 'bg-cyan-500', 'bg-yellow-500', 'bg-green-500'];
               return (
-                <div key={idx}>
+                <div key={modelItem.model}>
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="text-sm text-dark-300">{modelItem.model}</span>
@@ -372,7 +372,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
                     <div
-                      className={`h-full ${colors[idx % colors.length]} rounded-full transition-all`}
+                      className={`h-full ${colors[index % colors.length]} rounded-full transition-all`}
                       style={{ width: `${percent}%` }}
                     />
                   </div>

@@ -75,9 +75,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   useEffect(() => {
     if (!user && isLogin) {
-      initFromToken();
+      initFromToken().catch(() => undefined);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, isLogin, initFromToken]);
 
   useEffect(() => {
     const handleResize = () => setCollapsed(window.innerWidth < 1024);

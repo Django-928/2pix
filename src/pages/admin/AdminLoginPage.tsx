@@ -73,10 +73,10 @@ export default function AdminLoginPage() {
               { icon: Shield, title: '权限清晰', desc: '角色、用户和状态集中管理' },
               { icon: Zap, title: '计费可演示', desc: '价格、余额和账单链路可用于产品展示' },
               { icon: TrendingUp, title: '日志可追踪', desc: '登录、注册和运营操作留下记录' },
-            ].map((item, idx) => {
+            ].map((item) => {
               const Icon = item.icon;
               return (
-                <div key={idx} className="flex items-start gap-4">
+                <div key={item.title} className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center flex-shrink-0">
                     <Icon size={22} className="text-purple-400" />
                   </div>

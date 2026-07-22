@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Filter, RefreshCw, RotateCcw, Search, XCircle } from 'lucide-react';
 import api from '@/utils/api';
 
@@ -33,7 +33,7 @@ export default function AdminRefundsPage() {
   const [status, setStatus] = useState('');
   const [notice, setNotice] = useState('');
 
-  const load = async (page = data.page) => {
+  const load = useCallback(async (page = data.page) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -48,11 +48,11 @@ export default function AdminRefundsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [data.page, data.pageSize, status, keyword]);
 
   useEffect(() => {
     load(1);
-  }, [status, keyword]);
+  }, [load]);
 
   const totalPages = Math.max(1, Math.ceil(data.total / data.pageSize));
 

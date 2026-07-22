@@ -25,10 +25,15 @@ interface AdminState {
   hasPermission: (perm: string) => boolean;
 }
 
+function getAdminToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('admin_token');
+}
+
 export const useAdminStore = create<AdminState>((set, get) => ({
   user: null,
-  token: localStorage.getItem('admin_token'),
-  isLogin: !!localStorage.getItem('admin_token'),
+  token: getAdminToken(),
+  isLogin: !!getAdminToken(),
   initialized: false,
   setUser: (user) => set({ user }),
   setToken: (token) => {

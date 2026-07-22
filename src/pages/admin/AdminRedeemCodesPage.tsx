@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -78,7 +78,7 @@ export default function AdminRedeemCodesPage() {
   const [records, setRecords] = useState<RedeemRecord[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
 
-  const load = async (page = data.page) => {
+  const load = useCallback(async (page = data.page) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -93,11 +93,11 @@ export default function AdminRedeemCodesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [data.page, data.pageSize, status, keyword]);
 
   useEffect(() => {
     load(1);
-  }, [status, keyword]);
+  }, [load]);
 
   const handleCreate = async () => {
     setCreating(true);

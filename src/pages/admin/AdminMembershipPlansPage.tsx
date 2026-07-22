@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   CheckCircle2,
   Crown,
@@ -52,7 +52,7 @@ export default function AdminMembershipPlansPage() {
     status: 'active',
   });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get<{ list: MembershipPlan[]; total: number; page: number; pageSize: number }>('/admin/membership-plans');
@@ -62,11 +62,11 @@ export default function AdminMembershipPlansPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const openCreate = () => {
     setEditing(null);

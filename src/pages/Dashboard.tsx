@@ -84,10 +84,10 @@ export default function Dashboard() {
 
       <section className="mb-12 fade-in" style={{ animationDelay: '0.1s' }}>
         <div className="grid grid-cols-3 gap-6">
-          {stats.map((stat, index) => {
+          {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={index} className="rounded-2xl glassmorphism p-6 hover:border-primary-500/50 transition-all duration-300">
+              <div key={stat.label} className="rounded-2xl glassmorphism p-6 hover:border-primary-500/50 transition-all duration-300">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-primary-600/20 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-primary-400" />
