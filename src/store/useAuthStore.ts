@@ -22,6 +22,7 @@ export interface RegisterPayload {
   inviteCode?: string;
   captchaId: string;
   captchaCode: string;
+  emailCode: string;
   agreedTerms: boolean;
   agreedPrivacy: boolean;
 }

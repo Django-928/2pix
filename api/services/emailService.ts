@@ -56,6 +56,37 @@ export async function sendActivationEmail({ to, username, token }: SendActivatio
   });
 }
 
+export interface SendVerificationCodeEmailOptions {
+  to: string;
+  code: string;
+  purpose?: string;
+}
+
+export async function sendVerificationCodeEmail({ to, code, purpose = 'register' }: SendVerificationCodeEmailOptions): Promise<void> {
+  if (!transporter) {
+    console.warn('[EmailService] SMTP not configured, skipping verification code email.');
+    return;
+  }
+
+  const purposeText = purpose === 'register' ? '注册' : '验证';
+
+  await transporter.sendMail({
+    from: SMTP_FROM || SMTP_USER || 'noreply@2pix.cn',
+    to,
+    subject: `您的 2PIX ${purposeText}验证码`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <h2 style="color: #8b5cf6;">您好</h2>
+        <p>您正在进行 2PIX 账号${purposeText}，验证码为：</p>
+        <div style="display: inline-block; padding: 16px 32px; background: #f3f4f6; border-radius: 8px; margin: 16px 0; font-size: 28px; font-weight: 700; letter-spacing: 4px; color: #8b5cf6;">${code}</div>
+        <p>验证码 10 分钟内有效。如非本人操作，请忽略本邮件。</p>
+        <p style="color: #999; font-size: 12px; margin-top: 24px;">请勿将验证码泄露给他人。</p>
+      </div>
+    `,
+    text: `您好，您正在进行 2PIX 账号${purposeText}，验证码为：${code}，10 分钟内有效。如非本人操作，请忽略本邮件。`,
+  });
+}
+
 export function isEmailConfigured(): boolean {
   return !!transporter;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Loader2, Sparkles, LogOut, LayoutDashboard, RefreshCw, Mail, ExternalLink } from 'lucide-react';
+import { Loader2, Sparkles, LogOut, LayoutDashboard, RefreshCw, Mail } from 'lucide-react';
 import useAuthStore from '@/store/useAuthStore';
 
 const PHONE_REGEX = /^1[3-9]\d{9}$/;
@@ -16,13 +16,16 @@ export default function RegisterPage() {
     inviteCode: '',
     captchaId: '',
     captchaCode: '',
+    emailCode: '',
     agreedTerms: false,
     agreedPrivacy: false,
   });
   const [error, setError] = useState('');
   const [captchaSvg, setCaptchaSvg] = useState('');
   const [captchaLoading, setCaptchaLoading] = useState(false);
-  const [activation, setActivation] = useState<{ show: boolean; message: string; url?: string } | null>(null);
+  const [emailCodeSending, setEmailCodeSending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [registered, setRegistered] = useState(false);
   const navigate = useNavigate();
   const { register, isLogin, loading, logout, user } = useAuthStore();
 
@@ -52,10 +55,59 @@ export default function RegisterPage() {
     }
   }, [isLogin]);
 
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const sendEmailCode = async () => {
+    setError('');
+    if (!form.email) {
+      setError('请先填写邮箱');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError('邮箱格式不正确');
+      return;
+    }
+    if (!form.captchaId || !form.captchaCode) {
+      setError('请先填写图形验证码');
+      return;
+    }
+    setEmailCodeSending(true);
+    try {
+      const res = await fetch('/api/auth/send-email-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.email,
+          captchaId: form.captchaId,
+          captchaCode: form.captchaCode,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || '发送失败');
+      }
+      setCountdown(60);
+      setForm((prev) => ({ ...prev, emailCode: '' }));
+      // 开发环境后端会返回验证码，方便测试
+      if (data.code) {
+        setForm((prev) => ({ ...prev, emailCode: data.code }));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '验证码发送失败');
+      loadCaptcha();
+    } finally {
+      setEmailCodeSending(false);
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
-    setActivation(null);
+    setRegistered(false);
 
     if (form.password !== form.confirmPassword) {
       setError('两次输入的密码不一致');
@@ -73,9 +125,13 @@ export default function RegisterPage() {
       setError('请输入图形验证码');
       return;
     }
+    if (!form.emailCode) {
+      setError('请输入邮箱验证码');
+      return;
+    }
 
     try {
-      const result = await register({
+      await register({
         username: form.username,
         nickname: form.nickname || form.username,
         email: form.email,
@@ -84,14 +140,11 @@ export default function RegisterPage() {
         inviteCode: form.inviteCode || undefined,
         captchaId: form.captchaId,
         captchaCode: form.captchaCode,
+        emailCode: form.emailCode,
         agreedTerms: form.agreedTerms,
         agreedPrivacy: form.agreedPrivacy,
       });
-      if (result.requiresActivation) {
-        setActivation({ show: true, message: result.message, url: result.activationUrl });
-      } else {
-        navigate('/home', { replace: true });
-      }
+      setRegistered(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册失败');
       loadCaptcha();
@@ -154,32 +207,18 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {activation?.show ? (
+        {registered ? (
           <div className="space-y-6 py-2">
             <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
               <Mail className="w-7 h-7 text-emerald-400" />
             </div>
             <div className="text-center">
               <h2 className="font-display text-xl font-semibold text-white">注册成功</h2>
-              <p className="text-sm text-[#bbb] mt-2">{activation.message}</p>
+              <p className="text-sm text-[#bbb] mt-2">请使用账号密码登录</p>
               <p className="text-sm text-[#777] mt-1">
-                激活邮件已发送至 <span className="text-[#a78bfa]">{form.email}</span>，请点击邮件中的链接完成激活。
+                邮箱 <span className="text-[#a78bfa]">{form.email}</span> 已验证通过，现在可以登录了。
               </p>
             </div>
-            {activation.url && (
-              <div className="rounded-xl border border-[#8b5cf6]/20 bg-[#8b5cf6]/10 p-4 space-y-2">
-                <p className="text-xs text-[#999]">当前未配置邮件服务器，可使用下方测试激活链接：</p>
-                <a
-                  href={activation.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-[#a78bfa] hover:text-[#c4b5fd] break-all"
-                >
-                  {activation.url}
-                  <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                </a>
-              </div>
-            )}
             <button
               onClick={() => navigate('/login')}
               className="w-full h-12 rounded-xl bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(139,92,246,0.3)] flex items-center justify-center gap-2 shadow-lg shadow-[#8b5cf6]/20 transition-all"
@@ -204,6 +243,34 @@ export default function RegisterPage() {
               <div>
                 <label className="block text-sm text-[#bbb] mb-2">邮箱</label>
                 <input type="email" value={form.email} onChange={(e) => updateForm('email', e.target.value)} className="w-full px-4 py-3 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.06)] text-white outline-none focus:border-[#8b5cf6]/50 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.12),0_0_20px_rgba(139,92,246,0.08)] transition-all" required />
+              </div>
+
+              <div>
+                <label className="block text-sm text-[#bbb] mb-2">邮箱验证码</label>
+                <div className="flex gap-3">
+                  <input
+                    value={form.emailCode}
+                    onChange={(e) => updateForm('emailCode', e.target.value)}
+                    placeholder="输入6位验证码"
+                    maxLength={6}
+                    className="flex-1 min-w-0 px-4 py-3 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.06)] text-white outline-none focus:border-[#8b5cf6]/50 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.12),0_0_20px_rgba(139,92,246,0.08)] transition-all"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={sendEmailCode}
+                    disabled={emailCodeSending || countdown > 0 || !form.email || !form.captchaCode}
+                    className="shrink-0 px-4 h-[46px] rounded-xl bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] text-white text-sm font-medium hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {emailCodeSending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : countdown > 0 ? (
+                      `${countdown}s 后重发`
+                    ) : (
+                      '获取验证码'
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -287,7 +354,7 @@ export default function RegisterPage() {
               {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
 
               <button
-                disabled={loading || !form.username || !form.email || !form.password || !form.confirmPassword || !form.captchaCode || !form.agreedTerms || !form.agreedPrivacy}
+                disabled={loading || !form.username || !form.email || !form.password || !form.confirmPassword || !form.captchaCode || !form.emailCode || !form.agreedTerms || !form.agreedPrivacy}
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-[#8b5cf6] to-[#6366f1] text-white font-semibold hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(139,92,246,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-[#8b5cf6]/20 transition-all"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}

@@ -13,7 +13,7 @@ import {
   authMiddleware,
 } from '../utils/auth.js';
 import { getSystemConfig } from '../utils/systemConfig.js';
-import { sendActivationEmail, isEmailConfigured } from '../services/emailService.js';
+import { sendActivationEmail, sendVerificationCodeEmail, isEmailConfigured } from '../services/emailService.js';
 import { createCaptcha, validateCaptcha } from '../services/captchaService.js';
 
 const router = Router();
@@ -135,6 +135,14 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const emailCodeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: '验证码发送次数过多，请1小时后再试' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 /**
  * @openapi
  * /auth/captcha:
@@ -166,17 +174,89 @@ router.get('/captcha', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-router.post('/register', registerLimiter, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { username, email, password, phone, nickname, captchaId, captchaCode, agreedTerms, agreedPrivacy, inviteCode } = req.body;
+function generateEmailCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
-    if (!username || !email || !password || !captchaId || !captchaCode) {
-      res.status(400).json({ success: false, error: '用户名、邮箱、密码和验证码不能为空' });
+function validateEmailCode(email: string, code: string): boolean {
+  const record = db.prepare(`
+    SELECT id FROM email_verification_codes
+    WHERE email = ? AND code = ? AND purpose = 'register' AND used = 0 AND expires_at > CURRENT_TIMESTAMP
+  `).get(email, code) as { id: number } | undefined;
+
+  if (record) {
+    db.prepare('UPDATE email_verification_codes SET used = 1 WHERE id = ?').run(record.id);
+    return true;
+  }
+  return false;
+}
+
+router.post('/send-email-code', emailCodeLimiter, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, captchaId, captchaCode } = req.body;
+
+    if (!email || !captchaId || !captchaCode) {
+      res.status(400).json({ success: false, error: '邮箱、图形验证码不能为空' });
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      res.status(400).json({ success: false, error: '邮箱格式不正确' });
       return;
     }
 
     if (!validateCaptcha(captchaId, captchaCode)) {
-      res.status(400).json({ success: false, error: '验证码错误或已过期' });
+      res.status(400).json({ success: false, error: '图形验证码错误或已过期' });
+      return;
+    }
+
+    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (existingUser) {
+      res.status(400).json({ success: false, error: '该邮箱已被注册' });
+      return;
+    }
+
+    const code = generateEmailCode();
+    const expiresAt = db.prepare("SELECT DATETIME('now', '+10 minutes') as expires").get() as { expires: string };
+
+    // 标记该邮箱旧验证码为已使用
+    db.prepare('UPDATE email_verification_codes SET used = 1 WHERE email = ? AND purpose = ? AND used = 0').run(email, 'register');
+
+    db.prepare(`
+      INSERT INTO email_verification_codes (email, code, purpose, expires_at)
+      VALUES (?, ?, 'register', ?)
+    `).run(email, code, expiresAt.expires);
+
+    await sendVerificationCodeEmail({ to: email, code });
+
+    const responseData: Record<string, unknown> = {
+      success: true,
+      message: '验证码已发送，请查收邮件',
+    };
+
+    if (!isEmailConfigured()) {
+      responseData.code = code;
+      console.log(`[Dev] Email verification code for ${email}: ${code}`);
+    }
+
+    res.json(responseData);
+  } catch (error) {
+    console.error('Send email code error:', error);
+    res.status(500).json({ success: false, error: '验证码发送失败，请稍后重试' });
+  }
+});
+
+router.post('/register', registerLimiter, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { username, email, password, phone, nickname, captchaId, captchaCode, emailCode, agreedTerms, agreedPrivacy, inviteCode } = req.body;
+
+    if (!username || !email || !password || !captchaId || !captchaCode || !emailCode) {
+      res.status(400).json({ success: false, error: '用户名、邮箱、密码、图形验证码和邮箱验证码不能为空' });
+      return;
+    }
+
+    if (!validateCaptcha(captchaId, captchaCode)) {
+      res.status(400).json({ success: false, error: '图形验证码错误或已过期' });
       return;
     }
 
@@ -220,13 +300,16 @@ router.post('/register', registerLimiter, async (req: Request, res: Response): P
       return;
     }
 
+    if (!validateEmailCode(email, emailCode)) {
+      res.status(400).json({ success: false, error: '邮箱验证码错误或已过期' });
+      return;
+    }
+
     const userRole = db.prepare("SELECT id FROM roles WHERE name = 'user'").get() as { id: number } | undefined;
     const passwordHash = hashPassword(password);
     const ip = getClientIp(req);
     const systemConfig = getSystemConfig();
     const welcomeBonus = systemConfig.welcomeBonus;
-    const activationToken = crypto.randomUUID();
-    const activationExpires = db.prepare("SELECT DATETIME('now', '+24 hours') as expires").get() as { expires: string };
 
     const result = db.prepare(`
       INSERT INTO users (
@@ -234,7 +317,7 @@ router.post('/register', registerLimiter, async (req: Request, res: Response): P
         email_verified, activation_token, activation_expires,
         agreed_terms_at, agreed_privacy_at, balance
       )
-      VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+      VALUES (?, ?, ?, ?, ?, ?, 'active', 1, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
     `).run(
       username,
       email,
@@ -242,8 +325,6 @@ router.post('/register', registerLimiter, async (req: Request, res: Response): P
       passwordHash,
       nickname || username,
       userRole?.id || null,
-      activationToken,
-      activationExpires.expires,
       welcomeBonus
     );
 
@@ -267,24 +348,12 @@ router.post('/register', registerLimiter, async (req: Request, res: Response): P
       }
     }
 
-    await sendActivationEmail({ to: email, username, token: activationToken });
-
     logOperation(userId, username, 'register', 'auth', ip, req.headers['user-agent'] || '', { inviteCode: inviteCode || null, inviterId });
-
-    const activationData: Record<string, unknown> = {
-      requiresActivation: true,
-      message: '注册成功，请查收邮件激活账号',
-    };
-
-    if (!isEmailConfigured()) {
-      const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3001';
-      activationData.activationUrl = `${baseUrl}/auth/activate?token=${encodeURIComponent(activationToken)}`;
-    }
 
     res.status(201).json({
       success: true,
-      message: activationData.message,
-      data: activationData,
+      message: '注册成功，请登录',
+      data: { registered: true },
     });
   } catch (error) {
     console.error('Register error:', error);
