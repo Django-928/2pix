@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router, type Request, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import db from '../db/index.js';
@@ -12,8 +13,14 @@ import {
   authMiddleware,
 } from '../utils/auth.js';
 import { getSystemConfig } from '../utils/systemConfig.js';
+import { sendActivationEmail, isEmailConfigured } from '../services/emailService.js';
+import { createCaptcha, validateCaptcha } from '../services/captchaService.js';
 
 const router = Router();
+
+function validatePhone(phone: string): boolean {
+  return /^1[3-9]\d{9}$/.test(phone);
+}
 
 /**
  * @openapi
@@ -21,22 +28,28 @@ const router = Router();
  *   post:
  *     tags: [认证]
  *     summary: 用户注册
- *     description: 注册新用户，支持邀请码
+ *     description: 注册新用户，支持邀请码。注册后需通过邮件激活账号。
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [username, email, password]
+ *             required: [username, email, password, captchaId, captchaCode, agreedTerms, agreedPrivacy]
  *             properties:
  *               username: { type: string, example: 'testuser' }
  *               email: { type: string, example: 'test@example.com' }
- *               password: { type: string, example: '12345678' }
+ *               password: { type: string, example: 'StrongPass123' }
+ *               phone: { type: string, example: '13800138000' }
+ *               nickname: { type: string, example: '测试用户' }
+ *               captchaId: { type: string, example: '550e8400-e29b-41d4-a716-446655440000' }
+ *               captchaCode: { type: string, example: 'A3B7C' }
+ *               agreedTerms: { type: boolean, example: true }
+ *               agreedPrivacy: { type: boolean, example: true }
  *               inviteCode: { type: string, example: 'INVITE123' }
  *     responses:
  *       200:
- *         description: 注册成功，返回用户信息和 Token
+ *         description: 注册成功，请查收邮件激活账号
  */
 
 /**
@@ -122,12 +135,53 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * @openapi
+ * /auth/captcha:
+ *   get:
+ *     tags: [认证]
+ *     summary: 获取图形验证码
+ *     description: 返回一个 SVG 格式的图形验证码，需配合注册接口使用
+ *     responses:
+ *       200:
+ *         description: 返回 SVG 图片
+ *         content:
+ *           image/svg+xml:
+ *             schema:
+ *               type: string
+ */
+router.get('/captcha', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id, code } = createCaptcha();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <rect width="120" height="40" fill="#f0f0f0"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="20" fill="#333">${code}</text>
+</svg>`;
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('X-Captcha-Id', id);
+    res.send(svg);
+  } catch (error) {
+    console.error('Captcha error:', error);
+    res.status(500).json({ success: false, error: '获取验证码失败' });
+  }
+});
+
 router.post('/register', registerLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, email, password, phone, nickname, inviteCode } = req.body;
+    const { username, email, password, phone, nickname, captchaId, captchaCode, agreedTerms, agreedPrivacy, inviteCode } = req.body;
 
-    if (!username || !email || !password) {
-      res.status(400).json({ success: false, error: '用户名、邮箱和密码不能为空' });
+    if (!username || !email || !password || !captchaId || !captchaCode) {
+      res.status(400).json({ success: false, error: '用户名、邮箱、密码和验证码不能为空' });
+      return;
+    }
+
+    if (!validateCaptcha(captchaId, captchaCode)) {
+      res.status(400).json({ success: false, error: '验证码错误或已过期' });
+      return;
+    }
+
+    if (agreedTerms !== true || agreedPrivacy !== true) {
+      res.status(400).json({ success: false, error: '请阅读并同意用户协议和隐私政策' });
       return;
     }
 
@@ -152,6 +206,11 @@ router.post('/register', registerLimiter, async (req: Request, res: Response): P
       return;
     }
 
+    if (phone && !validatePhone(phone)) {
+      res.status(400).json({ success: false, error: '手机号格式不正确' });
+      return;
+    }
+
     const existingUser = phone
       ? db.prepare('SELECT id FROM users WHERE username = ? OR email = ? OR phone = ?').get(username, email, phone)
       : db.prepare('SELECT id FROM users WHERE username = ? OR email = ?').get(username, email);
@@ -166,10 +225,16 @@ router.post('/register', registerLimiter, async (req: Request, res: Response): P
     const ip = getClientIp(req);
     const systemConfig = getSystemConfig();
     const welcomeBonus = systemConfig.welcomeBonus;
+    const activationToken = crypto.randomUUID();
+    const activationExpires = db.prepare("SELECT DATETIME('now', '+24 hours') as expires").get() as { expires: string };
 
     const result = db.prepare(`
-      INSERT INTO users (username, email, phone, password_hash, nickname, role_id, status, balance)
-      VALUES (?, ?, ?, ?, ?, ?, 'active', ?)
+      INSERT INTO users (
+        username, email, phone, password_hash, nickname, role_id, status,
+        email_verified, activation_token, activation_expires,
+        agreed_terms_at, agreed_privacy_at, balance
+      )
+      VALUES (?, ?, ?, ?, ?, ?, 'active', 0, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
     `).run(
       username,
       email,
@@ -177,6 +242,8 @@ router.post('/register', registerLimiter, async (req: Request, res: Response): P
       passwordHash,
       nickname || username,
       userRole?.id || null,
+      activationToken,
+      activationExpires.expires,
       welcomeBonus
     );
 
@@ -200,39 +267,24 @@ router.post('/register', registerLimiter, async (req: Request, res: Response): P
       }
     }
 
-    const token = generateToken({
-      id: userId,
-      username,
-      email,
-      role_id: userRole?.id || null,
-      status: 'active',
-      balance: welcomeBonus,
-    });
-
-    db.prepare(`
-      INSERT INTO sessions (user_id, token, ip_address, user_agent, expires_at)
-      VALUES (?, ?, ?, ?, DATETIME('now', '+7 days'))
-    `).run(userId, token, ip, req.headers['user-agent'] || '');
+    await sendActivationEmail({ to: email, username, token: activationToken });
 
     logOperation(userId, username, 'register', 'auth', ip, req.headers['user-agent'] || '', { inviteCode: inviteCode || null, inviterId });
 
+    const activationData: Record<string, unknown> = {
+      requiresActivation: true,
+      message: '注册成功，请查收邮件激活账号',
+    };
+
+    if (!isEmailConfigured()) {
+      const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3001';
+      activationData.activationUrl = `${baseUrl}/auth/activate?token=${encodeURIComponent(activationToken)}`;
+    }
+
     res.status(201).json({
       success: true,
-      message: '注册成功',
-      data: {
-        token,
-        user: {
-          id: userId,
-          username,
-          email,
-          phone: phone || null,
-          nickname: nickname || username,
-          avatar: null,
-          role_name: 'user',
-          status: 'active',
-          balance: welcomeBonus,
-        },
-      },
+      message: activationData.message,
+      data: activationData,
     });
   } catch (error) {
     console.error('Register error:', error);
@@ -254,7 +306,7 @@ router.post('/login', loginLimiter, async (req: Request, res: Response): Promise
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.id
       WHERE u.username = ? OR u.email = ? OR u.phone = ?
-    `).get(username, username, username) as (Record<string, unknown> & { id: number; password_hash: string; status: string }) | undefined;
+    `).get(username, username, username) as (Record<string, unknown> & { id: number; password_hash: string; status: string; email_verified: number; email: string }) | undefined;
 
     if (!user) {
       res.status(401).json({ success: false, error: '用户名或密码错误' });
@@ -299,6 +351,15 @@ router.post('/login', loginLimiter, async (req: Request, res: Response): Promise
 
     if (user.status !== 'active') {
       res.status(403).json({ success: false, error: '账户已被禁用，请联系管理员' });
+      return;
+    }
+
+    if (user.email_verified === 0) {
+      res.status(403).json({
+        success: false,
+        error: '账号尚未激活，请先查收邮件并点击激活链接',
+        data: { requiresActivation: true, email: user.email },
+      });
       return;
     }
 
@@ -352,6 +413,126 @@ router.post('/login', loginLimiter, async (req: Request, res: Response): Promise
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ success: false, error: '登录失败，请稍后重试' });
+  }
+});
+
+/**
+ * @openapi
+ * /auth/activate:
+ *   get:
+ *     tags: [认证]
+ *     summary: 激活账号
+ *     description: 通过邮件中的激活链接激活账号
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       302:
+ *         description: 重定向到登录页
+ */
+router.get('/activate', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== 'string') {
+      res.redirect('/login?activationError=1');
+      return;
+    }
+
+    const user = db.prepare(`
+      SELECT id FROM users
+      WHERE activation_token = ? AND activation_expires > CURRENT_TIMESTAMP
+    `).get(token) as { id: number } | undefined;
+
+    if (!user) {
+      res.redirect('/login?activationError=1');
+      return;
+    }
+
+    db.prepare(`
+      UPDATE users
+      SET email_verified = 1, activation_token = NULL, activation_expires = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(user.id);
+
+    res.redirect('/login?activated=1');
+  } catch (error) {
+    console.error('Activate error:', error);
+    res.redirect('/login?activationError=1');
+  }
+});
+
+/**
+ * @openapi
+ * /auth/resend-activation:
+ *   post:
+ *     tags: [认证]
+ *     summary: 重发激活邮件
+ *     description: 为未激活账号重新发送激活邮件
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, example: 'test@example.com' }
+ *     responses:
+ *       200:
+ *         description: 激活邮件已重新发送
+ */
+router.post('/resend-activation', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !validateEmail(email)) {
+      res.status(400).json({ success: false, error: '邮箱格式不正确' });
+      return;
+    }
+
+    const user = db.prepare(`
+      SELECT id, username, email_verified FROM users WHERE email = ?
+    `).get(email) as { id: number; username: string; email_verified: number } | undefined;
+
+    if (!user) {
+      res.status(400).json({ success: false, error: '该邮箱尚未注册' });
+      return;
+    }
+
+    if (user.email_verified === 1) {
+      res.status(400).json({ success: false, error: '该账号已激活，请直接登录' });
+      return;
+    }
+
+    const activationToken = crypto.randomUUID();
+    const activationExpires = db.prepare("SELECT DATETIME('now', '+24 hours') as expires").get() as { expires: string };
+
+    db.prepare(`
+      UPDATE users
+      SET activation_token = ?, activation_expires = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(activationToken, activationExpires.expires, user.id);
+
+    await sendActivationEmail({ to: email, username: user.username, token: activationToken });
+
+    const responseData: Record<string, unknown> = {
+      success: true,
+      message: '激活邮件已发送，请查收邮件并点击激活链接',
+      data: { requiresActivation: true },
+    };
+
+    if (!isEmailConfigured()) {
+      const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3001';
+      responseData.activationUrl = `${baseUrl}/auth/activate?token=${encodeURIComponent(activationToken)}`;
+    }
+
+    res.json(responseData);
+  } catch (error) {
+    console.error('Resend activation error:', error);
+    res.status(500).json({ success: false, error: '重发激活邮件失败，请稍后重试' });
   }
 });
 

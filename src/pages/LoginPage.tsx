@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, ChevronRight, LogOut, LayoutDashboard } from 'lucide-react';
 import useAuthStore from '@/store/useAuthStore';
@@ -21,11 +21,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [videoError, setVideoError] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLogin, loading, logout, user } = useAuthStore();
   const redirectTo = (location.state as { from?: string } | null)?.from || '/home';
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('activated') === '1') {
+      setNotice({ type: 'success', text: '账号激活成功，请登录' });
+    } else if (params.get('activationError') === '1') {
+      setNotice({ type: 'error', text: '激活链接无效或已过期，请重新注册或联系客服' });
+    }
+  }, [location.search]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -200,6 +210,18 @@ export default function LoginPage() {
                     </button>
                   </div>
                 </div>
+
+                {notice && (
+                  <div
+                    className={`rounded-xl border px-4 py-3 text-sm ${
+                      notice.type === 'success'
+                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                        : 'border-red-500/20 bg-red-500/10 text-red-300'
+                    }`}
+                  >
+                    {notice.text}
+                  </div>
+                )}
 
                 {error && (
                   <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">

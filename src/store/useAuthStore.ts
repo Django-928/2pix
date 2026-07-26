@@ -13,6 +13,25 @@ export interface CurrentUser {
   balance: number;
 }
 
+export interface RegisterPayload {
+  username: string;
+  email: string;
+  password: string;
+  phone?: string;
+  nickname?: string;
+  inviteCode?: string;
+  captchaId: string;
+  captchaCode: string;
+  agreedTerms: boolean;
+  agreedPrivacy: boolean;
+}
+
+export interface RegisterResponse {
+  message: string;
+  requiresActivation: boolean;
+  activationUrl?: string;
+}
+
 interface AuthState {
   user: CurrentUser | null;
   token: string | null;
@@ -21,7 +40,7 @@ interface AuthState {
   setUser: (user: CurrentUser | null) => void;
   setToken: (token: string | null) => void;
   login: (username: string, password: string) => Promise<void>;
-  register: (payload: { username: string; email: string; password: string; phone?: string; nickname?: string; inviteCode?: string }) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<RegisterResponse>;
   refreshMe: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -58,9 +77,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (payload) => {
     set({ loading: true });
     try {
-      const data = await api.post<{ token: string; user: CurrentUser }>('/auth/register', payload);
-      localStorage.setItem('user_token', data.token);
-      set({ token: data.token, user: data.user, isLogin: true });
+      const data = await api.post<RegisterResponse>('/auth/register', payload);
+      return {
+        message: data.message || '注册成功',
+        requiresActivation: data.requiresActivation ?? false,
+        activationUrl: data.activationUrl,
+      };
     } finally {
       set({ loading: false });
     }

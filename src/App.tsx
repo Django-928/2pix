@@ -26,6 +26,8 @@ const AgentCenterPage = lazy(() => import('@/pages/AgentCenterPage'));
 const AuraPage = lazy(() => import('@/pages/AuraPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
+const TermsPage = lazy(() => import('@/pages/TermsPage'));
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
 const AdminLoginPage = lazy(() => import('@/pages/admin/AdminLoginPage'));
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
@@ -262,6 +264,8 @@ export default function App() {
 
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
 
         <Route path="/home" element={<UserRoute><UnifiedWorkbenchPage /></UserRoute>} />
 

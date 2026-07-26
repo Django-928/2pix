@@ -40,6 +40,11 @@ export function initDatabase() {
       avatar TEXT,
       role_id INTEGER,
       status TEXT NOT NULL DEFAULT 'active',
+      email_verified INTEGER NOT NULL DEFAULT 0,
+      activation_token TEXT,
+      activation_expires DATETIME,
+      agreed_terms_at DATETIME,
+      agreed_privacy_at DATETIME,
       balance REAL NOT NULL DEFAULT 0,
       total_tokens INTEGER NOT NULL DEFAULT 0,
       used_tokens INTEGER NOT NULL DEFAULT 0,
@@ -404,6 +409,12 @@ export function initDatabase() {
       db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
     }
   };
+
+  addColumnIfMissing('users', 'email_verified', 'INTEGER NOT NULL DEFAULT 0');
+  addColumnIfMissing('users', 'activation_token', 'TEXT');
+  addColumnIfMissing('users', 'activation_expires', 'DATETIME');
+  addColumnIfMissing('users', 'agreed_terms_at', 'DATETIME');
+  addColumnIfMissing('users', 'agreed_privacy_at', 'DATETIME');
 
   addColumnIfMissing('orders', 'expires_at', 'DATETIME');
   addColumnIfMissing('orders', 'closed_at', 'DATETIME');
