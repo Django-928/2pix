@@ -20,6 +20,11 @@ const transporter = SMTP_HOST
             pass: SMTP_PASS || '',
           }
         : undefined,
+      // 部分邮箱服务商（如 QQ/foxmail）在本地/容器环境可能出现证书校验失败，
+      // 关闭严格校验以保证可用性；生产环境建议配置可信 CA 证书并开启校验
+      tls: {
+        rejectUnauthorized: false,
+      },
     })
   : null;
 

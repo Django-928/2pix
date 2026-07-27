@@ -1,3 +1,6 @@
+// 必须在任何读取 process.env 的模块之前加载 .env
+import 'dotenv/config'
+
 import express, {
   type Request,
   type Response,
@@ -5,7 +8,6 @@ import express, {
 } from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
-import dotenv from 'dotenv'
 import swaggerUi from 'swagger-ui-express'
 import swaggerSpec from './swagger.js'
 import initDatabase from './db/init.js'
@@ -48,8 +50,6 @@ import adminModelsRoutes, { publicRouter as publicModelsRoutes } from './routes/
 import pricingRoutes from './routes/pricing.js'
 import kieCallbackRoutes from './routes/kieCallback.js'
 import kieTaskRoutes from './routes/kieTasks.js'
-
-dotenv.config()
 
 initDatabase()
 initCleanupService(db)
