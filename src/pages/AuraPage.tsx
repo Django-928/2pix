@@ -478,6 +478,7 @@ function Footer() {
 function Background() {
   const { theme } = usePage();
   const [videoError, setVideoError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const isLight = theme === 'light';
   const overlay = isLight
@@ -486,17 +487,29 @@ function Background() {
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none">
-      {/* Video background - blue fluid ribbon */}
+      {/* Static poster: instant first paint, no white flash */}
+      {!videoError && (
+        <div
+          className="absolute inset-0 w-full h-full bg-cover bg-center"
+          style={{ backgroundImage: 'url(/videos/bg-poster.jpg)' }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Video background - blue fluid ribbon, fades in over poster */}
       {!videoError && (
         <video
-          className="absolute inset-0 w-full h-full object-cover"
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'}`}
           autoPlay
           loop
           muted
           playsInline
+          preload="auto"
+          poster="/videos/bg-poster.jpg"
+          onLoadedData={() => setLoaded(true)}
           onError={() => setVideoError(true)}
         >
-          <source src="/api/videos/bg.mp4" type="video/mp4" />
+          <source src="/videos/bg.mp4" type="video/mp4" />
         </video>
       )}
 
