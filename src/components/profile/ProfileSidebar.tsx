@@ -88,30 +88,6 @@ export default function ProfileSidebar({
           </div>
         </div>
 
-        <button
-          onClick={onCheckIn}
-          disabled={todayChecked || checkInLoading}
-          className={`w-full mt-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-            todayChecked
-              ? 'bg-green-500/10 text-green-300 border border-green-500/20'
-              : 'bg-[#8b5cf6] text-white hover:bg-[#7c3aed] disabled:opacity-50'
-          }`}
-        >
-          {checkInLoading
-            ? '签到中...'
-            : todayChecked
-              ? `今日已签到 +${(checkInStatus?.todayReward || checkInStatus?.reward || 0).toLocaleString()}`
-              : `每日签到领取 ${(checkInStatus?.reward || 80).toLocaleString()} 积分`}
-        </button>
-        <div className="mt-2 flex items-center justify-between text-[11px] text-[#666]">
-          <span>连续签到 {checkInStatus?.streakDays || 0} 天</span>
-          <span>{checkInStatus?.lastCheckInDate ? `上次：${checkInStatus.lastCheckInDate}` : '还未签到'}</span>
-        </div>
-        {checkInNotice && (
-          <p className={`mt-2 text-xs ${checkInNotice.includes('成功') ? 'text-green-300' : 'text-amber-300'}`}>
-            {checkInNotice}
-          </p>
-        )}
       </section>
 
       <nav className="rounded-3xl bg-[#111] border border-white/[0.08] p-2">
