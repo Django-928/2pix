@@ -28,7 +28,7 @@ const defaultSystemConfig: SystemConfig = {
   platformName: '2PIX',
   logoUrl: '',
   welcomeBonus: 0,
-  dailyCheckInBonus: 80,
+  dailyCheckInBonus: 0,
   orderExpireMinutes: 30,
   modelCallTimeoutSeconds: 120,
   maintenanceMode: false,
