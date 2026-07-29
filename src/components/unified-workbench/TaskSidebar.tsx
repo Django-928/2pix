@@ -165,12 +165,12 @@ export function TaskSidebar({
                               activeModel.category
                             )} flex items-center justify-center text-[10px] font-bold shadow-md flex-shrink-0 overflow-hidden`}
                             style={
-                              activeModel.icon.startsWith('http')
+                              activeModel.icon.startsWith('http') || activeModel.icon.startsWith('/')
                                 ? { padding: 0, background: 'transparent' }
                                 : {}
                             }
                           >
-                            {activeModel.icon.startsWith('http') ? (
+                            {activeModel.icon.startsWith('http') || activeModel.icon.startsWith('/') ? (
                               <img
                                 src={activeModel.icon}
                                 alt={activeModel.name}

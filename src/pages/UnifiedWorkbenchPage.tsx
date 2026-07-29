@@ -105,7 +105,7 @@ export default function UnifiedWorkbenchPage() {
         const data = await api.get<ApiModel[]>('/models');
         // 仅当 API 返回的模型使用图片图标（http）时才覆盖前端默认模型
         // 旧数据库模型的 icon 是 emoji，应忽略以使用前端 87 个 KIE 模型
-        if (Array.isArray(data) && data.length > 0 && data.some((m) => m.icon?.startsWith('http'))) {
+        if (Array.isArray(data) && data.length > 0 && data.some((m) => m.icon?.startsWith('http') || m.icon?.startsWith('/'))) {
           const pinnedDefaults = defaultModels.filter((m) => m.isPinned);
           const apiIds = new Set(data.map((m) => m.id));
           const uniquePinned = pinnedDefaults.filter((m) => !apiIds.has(m.id));

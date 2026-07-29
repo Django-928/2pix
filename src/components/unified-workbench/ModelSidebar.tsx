@@ -128,9 +128,9 @@ export function ModelSidebar({
                     className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModelGradient(
                       model.category
                     )} flex items-center justify-center text-sm font-bold shadow-lg overflow-hidden`}
-                    style={model.icon.startsWith('http') ? { padding: 0, background: 'transparent' } : {}}
+                    style={model.icon.startsWith('http') || model.icon.startsWith('/') ? { padding: 0, background: 'transparent' } : {}}
                   >
-                    {model.icon.startsWith('http') ? (
+                    {model.icon.startsWith('http') || model.icon.startsWith('/') ? (
                       <img
                         src={model.icon}
                         alt={model.name}

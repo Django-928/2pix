@@ -621,7 +621,7 @@ export default function AdminModelsPage() {
                   <tr key={model.id} className="border-b border-purple-500/5 hover:bg-purple-500/5">
                     <td className="py-4 px-5">
                       <div className="flex items-center gap-2">
-                        {model.icon && model.icon.startsWith('http') ? (
+                        {model.icon && (model.icon.startsWith('http') || model.icon.startsWith('/')) ? (
                           <img src={model.icon} alt={model.name} className="w-8 h-8 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                         ) : (
                           <span className="text-2xl">{model.icon || '✨'}</span>
@@ -945,7 +945,7 @@ export default function AdminModelsPage() {
               {/* 当前图标预览 */}
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-dark-900/50 border border-purple-500/20 overflow-hidden">
-                  {iconEditValue && iconEditValue.startsWith('http') ? (
+                  {iconEditValue && (iconEditValue.startsWith('http') || iconEditValue.startsWith('/')) ? (
                     <img src={iconEditValue} alt="图标预览" className="w-12 h-12 rounded-lg object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   ) : (
                     <span className="text-3xl">{iconEditValue || '✨'}</span>

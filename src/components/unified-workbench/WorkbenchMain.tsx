@@ -270,9 +270,9 @@ export function WorkbenchMain({
           <div className="text-center space-y-5 max-w-md">
             <div
               className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${modelGradient} flex items-center justify-center mx-auto shadow-lg overflow-hidden`}
-              style={activeModel.icon.startsWith('http') ? { padding: 0, background: 'transparent' } : {}}
+              style={activeModel.icon.startsWith('http') || activeModel.icon.startsWith('/') ? { padding: 0, background: 'transparent' } : {}}
             >
-              {activeModel.icon.startsWith('http') ? (
+              {activeModel.icon.startsWith('http') || activeModel.icon.startsWith('/') ? (
                 <img
                   src={activeModel.icon}
                   alt={activeModel.name}

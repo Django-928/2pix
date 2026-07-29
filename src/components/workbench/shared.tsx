@@ -3,7 +3,7 @@ import type { AIModel } from '@/data/models';
 
 /* ── 模型 Logo（大图标） ── */
 export function ModelLogo({ model }: { model: AIModel }) {
-  if (model.icon.startsWith('http')) {
+  if (model.icon.startsWith('http') || model.icon.startsWith('/')) {
     return (
       <img src={model.icon} alt={model.name} loading="lazy" decoding="async" className="w-10 h-10 rounded-xl object-cover" />
     );
