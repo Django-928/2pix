@@ -73,7 +73,7 @@ const defaultProviderConfig: ProviderConfig = {
       name: 'KIE AI',
       enabled: true,
       baseUrl: 'https://api.kie.ai',
-      apiKey: '06053239c868c8ccda5c9a8d5e4528d9',
+      apiKey: '',
       timeoutSeconds: 300,
       costMultiplier: 1,
       models: [

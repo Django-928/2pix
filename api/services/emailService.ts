@@ -7,7 +7,10 @@ const {
   SMTP_PASS,
   SMTP_FROM,
   APP_BASE_URL,
+  SMTP_TLS_REJECT_UNAUTHORIZED,
 } = process.env;
+
+const tlsRejectUnauthorized = SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
 
 const transporter = SMTP_HOST
   ? nodemailer.createTransport({
@@ -20,10 +23,10 @@ const transporter = SMTP_HOST
             pass: SMTP_PASS || '',
           }
         : undefined,
-      // 部分邮箱服务商（如 QQ/foxmail）在本地/容器环境可能出现证书校验失败，
-      // 关闭严格校验以保证可用性；生产环境建议配置可信 CA 证书并开启校验
+      // 默认开启 TLS 证书校验；仅在环境变量 SMTP_TLS_REJECT_UNAUTHORIZED=false 时关闭
+      // （用于本地/容器调试或证书链不完整的环境），生产环境强烈建议保持开启
       tls: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: tlsRejectUnauthorized,
       },
     })
   : null;

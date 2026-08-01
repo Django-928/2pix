@@ -4,7 +4,10 @@ const ALGORITHM = 'aes-256-gcm';
 const SECRET_MASK = '••••••••';
 
 function getEncryptionKey(): Buffer {
-  const raw = process.env.CONFIG_ENCRYPTION_KEY || '2pix-default-config-encryption-key-2026!';
+  const raw = process.env.CONFIG_ENCRYPTION_KEY;
+  if (!raw) {
+    throw new Error('CONFIG_ENCRYPTION_KEY environment variable is required');
+  }
   return crypto.createHash('sha256').update(raw).digest();
 }
 

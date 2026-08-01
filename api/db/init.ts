@@ -513,7 +513,10 @@ export function initDatabase() {
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
     if (userCount.count === 0) {
       const adminRole = db.prepare("SELECT id FROM roles WHERE name = 'admin'").get() as { id: number };
-      const defaultAdminPwd = process.env.ADMIN_DEFAULT_PASSWORD || 'admin123456';
+      const defaultAdminPwd = process.env.ADMIN_DEFAULT_PASSWORD;
+      if (!defaultAdminPwd) {
+        throw new Error('ADMIN_DEFAULT_PASSWORD environment variable is required for initial admin creation');
+      }
       const passwordHash = bcrypt.hashSync(defaultAdminPwd, 10);
       db.prepare(`
         INSERT INTO users (username, email, password_hash, nickname, role_id, status, balance)

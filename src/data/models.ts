@@ -18,7 +18,7 @@ export const aiModels: AIModel[] = [
     name: "Kimi K3",
     description: "月之暗面 Kimi K3 前沿编程模型，具备原生视觉与百万 Token 智能体能力，可通过 Kie.ai 低价调用。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/custom-page/akr/section-images/1760352550893x3wzqgla.webp",
+    icon: "/icons/models/kimi.svg",
     tags: ["新品", "聊天"],
     isNew: true,
   },
@@ -27,7 +27,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Fable 5",
     description: "Anthropic Mythos 级通用模型，擅长长程编程、复杂知识推理及多步智能体任务。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1781069980997_fBKsGjQQ.webp",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -35,7 +35,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Haiku 4.5",
     description: "Anthropic 轻量级 AI 模型，专为快速、低成本应用设计，性能接近高端模型。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1773393758446_zPGLzne5.png",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -43,7 +43,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Opus 4.5",
     description: "Anthropic 最智能的模型，在推理、编程和创意写作等广泛任务中兼具最强能力与实用性能。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1768360466014_sFpsHAs0.webp",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -51,7 +51,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Opus 4.6",
     description: "Anthropic 升级版 Opus 级模型，强化编程、长上下文推理、智能体工作流及复杂任务处理。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1773625008611_Z4qCH1bA.webp",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -59,7 +59,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Opus 4.7",
     description: "提供更强的智能体编程、更精准的视觉理解、严格的指令遵循及持续的高性能输出。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1783586941735_IX6A2qyk.png",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -67,7 +67,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Opus 4.8",
     description: "在复杂推理、智能体编程及专业知识工作方面实现重大升级，综合能力显著提升。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1780043083924_BXxIgbhe.png",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -75,7 +75,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Sonnet 4.5",
     description: "Anthropic 旗舰大语言模型，擅长多步推理、复杂编程及高难度分析任务。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1768545037135_d0pa2Qev.png",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -83,7 +83,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Sonnet 4.6",
     description: "具备强推理、高级编程及原生计算机操作能力，上下文窗口大幅扩展。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1773626683685_cHZrRQVm.webp",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -91,7 +91,7 @@ export const aiModels: AIModel[] = [
     name: "Claude Sonnet 5",
     description: "多模态智能体接口，性能接近 Opus 级别，支持原生计算机操作与视觉理解。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1782886691046_3pnO8Z4Z.png",
+    icon: "/icons/models/claude.svg",
     tags: ["聊天"],
   },
   {
@@ -99,7 +99,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini 2.5 Flash",
     description: "Google DeepMind 首款混合推理大语言模型，兼顾快速生成与深度思考能力。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1768383901134_aRmGDQKh.webp",
+    icon: "/icons/models/gemini.svg",
     tags: ["聊天"],
   },
   {
@@ -107,7 +107,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini 2.5 Pro",
     description: "Google 高级思维模型，专为复杂推理、代码生成及长上下文理解而设计。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1767689314658_efHZrE72.webp",
+    icon: "/icons/models/gemini.svg",
     tags: ["聊天"],
   },
   {
@@ -115,7 +115,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini 3 Flash",
     description: "Google DeepMind 高性能大语言模型，以前沿级能力实现快速推理与生成。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1768544668909_iLOzTwUf.png",
+    icon: "/icons/models/gemini.svg",
     tags: ["聊天"],
   },
   {
@@ -123,7 +123,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini 3 Pro",
     description: "Google DeepMind 新一代多模态模型，具备高级推理、无缝图文互转及原生工具调用能力。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1763605293713_H2sVHGOl.png",
+    icon: "/icons/models/gemini.svg",
     tags: ["聊天"],
   },
   {
@@ -131,7 +131,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini 3.1 Pro",
     description: "Google DeepMind 最新通用大语言模型，在高端性能与日常效率之间取得平衡。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1772448826465_BDSw4GRN.png",
+    icon: "/icons/models/gemini.svg",
     tags: ["聊天"],
   },
   {
@@ -139,7 +139,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini 3.5 Flash",
     description: "Google 高效多模态模型，兼具 Flash 级速度与更强的编程、推理能力。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1780041602634_ga1twkjx.webp",
+    icon: "/icons/models/gemini.svg",
     tags: ["聊天"],
   },
   {
@@ -147,7 +147,7 @@ export const aiModels: AIModel[] = [
     name: "GPT-5.2",
     description: "OpenAI 最先进的 GPT-5 模型，适用于推理、编程、长文档处理及专业 AI 工作流。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1767682377885_7wnpnoLw.webp",
+    icon: "/icons/models/openai.svg",
     tags: ["聊天"],
   },
   {
@@ -155,7 +155,7 @@ export const aiModels: AIModel[] = [
     name: "GPT-5.4",
     description: "OpenAI GPT-5.4 在复杂推理、编程和专业知识工作方面表现强劲，支持扩展智能体工作流。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1773208667333_hxhGjrpf.webp",
+    icon: "/icons/models/openai.svg",
     tags: ["聊天"],
   },
   {
@@ -163,7 +163,7 @@ export const aiModels: AIModel[] = [
     name: "GPT-5.5",
     description: "OpenAI 高级推理模型，适用于智能体编程、知识工作、科研及复杂多步任务。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1777014349580_f1nAuAUc.webp",
+    icon: "/icons/models/openai.svg",
     tags: ["聊天"],
   },
   {
@@ -171,7 +171,7 @@ export const aiModels: AIModel[] = [
     name: "GPT-5.6",
     description: "GPT-5.6 整合 Sol、Terra 和 Luna 三层架构，覆盖前沿智能、日常高效及轻量任务。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1783661548081_mQP8PJ8b.png",
+    icon: "/icons/models/openai.svg",
     tags: ["聊天"],
   },
   {
@@ -179,7 +179,7 @@ export const aiModels: AIModel[] = [
     name: "OpenAI Codex",
     description: "基于 GPT-5 Codex 模型的 API，支持代码生成、调试、重构及多文件编程任务。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1772518049462_FJ4Vqdwe.png",
+    icon: "/icons/models/openai.svg",
     tags: ["聊天"],
   },
   {
@@ -187,7 +187,7 @@ export const aiModels: AIModel[] = [
     name: "Grok 4.3",
     description: "xAI 旗舰推理模型，以业界领先的低幻觉率和深度洞察力著称。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1783506167073_KcF1s2E3.png",
+    icon: "/icons/models/grok.svg",
     tags: ["聊天"],
   },
   {
@@ -195,7 +195,7 @@ export const aiModels: AIModel[] = [
     name: "Grok 4.5",
     description: "xAI 最新前沿模型，专注于编程、智能体任务和知识工作，软件工程能力出色。",
     category: "chat",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://kie.ai/tools/example/1783566829620_Hq91q4ra.png",
+    icon: "/icons/models/grok.svg",
     tags: ["聊天"],
   },
   {
@@ -203,7 +203,7 @@ export const aiModels: AIModel[] = [
     name: "GPT Image 2",
     description: "OpenAI 下一代图像模型，更强的照片级真实感、更精准的图像编辑与文字渲染能力。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1776822371390_vcAYOY4s.webp",
+    icon: "/icons/models/openai.svg",
     tags: ["热门", "文生图", "图生图"],
     isHot: true,
   },
@@ -212,7 +212,7 @@ export const aiModels: AIModel[] = [
     name: "FLUX 2",
     description: "Black Forest Labs 高级图像生成模型，具备照片级细节与强大多参考一致性控制。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1764248320029_qLjs2dCu.png",
+    icon: "/icons/models/flux.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -220,7 +220,7 @@ export const aiModels: AIModel[] = [
     name: "Flux Kontext",
     description: "FLUX.1 Kontext API 赋能图像编辑，支持基于自然语言指令的精准图像修改。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760432961990rfe43tz2.png",
+    icon: "/icons/models/flux.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -228,7 +228,7 @@ export const aiModels: AIModel[] = [
     name: "Seedream 3.0",
     description: "字节跳动最新文生图 API，支持原生 2K 分辨率，生成速度更快，提示词遵循更精准。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/17604336223654bm85hvx.png",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生图"],
   },
   {
@@ -236,7 +236,7 @@ export const aiModels: AIModel[] = [
     name: "Seedream 4.0",
     description: "字节跳动新一代图像模型，整合文生图、图生图与编辑能力，多模态理解更强。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/17604346335909arn4y6a.webp",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -244,7 +244,7 @@ export const aiModels: AIModel[] = [
     name: "Seedream 4.5",
     description: "字节跳动精研图像模型，支持 4K 生成、精准编辑及多图一致性输出。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1764900762655_tyWp22vk.webp",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -252,7 +252,7 @@ export const aiModels: AIModel[] = [
     name: "Seedream 5.0 Lite",
     description: "字节跳动统一多模态图像生成模型，具备多模态推理、深度理解及高效生成能力。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1772007488171_Kk3CSjow.png",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -260,7 +260,7 @@ export const aiModels: AIModel[] = [
     name: "Seedream 5.0 Pro",
     description: "字节跳动多模态图像模型，支持可控生成、精准编辑及复杂信息渲染。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1783576840914_q2FEdx8j.png",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -268,7 +268,7 @@ export const aiModels: AIModel[] = [
     name: "Imagen 4",
     description: "Google DeepMind 最新文生图模型，2025 年 Google I/O 发布，生成质量业界领先。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760435085346iwop02tf.webp",
+    icon: "/icons/models/google.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -276,7 +276,7 @@ export const aiModels: AIModel[] = [
     name: "Nano Banana 2",
     description: "Google Gemini 3.1 Flash 图像模型，面向开发者，兼顾生成速度与图像质量。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1772166557697_MR5wMR3x.png",
+    icon: "/icons/models/nanobanana.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -284,7 +284,7 @@ export const aiModels: AIModel[] = [
     name: "Nano Banana 2 Lite",
     description: "Google DeepMind 新发布的轻量图像模型，专为快速生成和低延迟场景优化。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1782889892839_kN2Wvt8b.png",
+    icon: "/icons/models/nanobanana.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -292,7 +292,7 @@ export const aiModels: AIModel[] = [
     name: "Nano Banana Pro",
     description: "提供更清晰的 2K 成像、智能 4K 放大、改进的文字渲染及增强的编辑能力。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1763724737745_iMOlYShq.png",
+    icon: "/icons/models/nanobanana.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -300,7 +300,7 @@ export const aiModels: AIModel[] = [
     name: "NanoBanana (Gemini 2.5 Flash Image Preview)",
     description: "Gemini 3 图像预览版，擅长自然语言驱动的图像生成与精准编辑。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/176043358319433328iqf.png",
+    icon: "/icons/models/nanobanana.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -308,7 +308,7 @@ export const aiModels: AIModel[] = [
     name: "Ideogram Character",
     description: "Ideogram AI 最新角色生成功能，确保角色在多图中保持面部等核心特征一致。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760434830700wqw6xlbh.png",
+    icon: "/icons/models/ideogram.svg",
     tags: ["图生图"],
   },
   {
@@ -316,7 +316,7 @@ export const aiModels: AIModel[] = [
     name: "Ideogram V3",
     description: "Ideogram 最新一代图像生成模型，支持文生图、图像编辑与风格参考生成。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760434993367qdfpwl8y.webp",
+    icon: "/icons/models/ideogram.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -324,7 +324,7 @@ export const aiModels: AIModel[] = [
     name: "4o Image (GPT-4o Image)",
     description: "OpenAI 最新图像生成模型，同时理解文本和图像输入，支持文生图与图生图。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/17604329349269y2j98mv.png",
+    icon: "/icons/models/openai.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -332,7 +332,7 @@ export const aiModels: AIModel[] = [
     name: "GPT Image 1.5",
     description: "OpenAI 旗舰图像生成模型，高质量图像创建与精准编辑，文字渲染能力出色。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1920,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/tools/example/1765961172105_jRGzhUQE.webp",
+    icon: "/icons/models/openai.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -340,7 +340,7 @@ export const aiModels: AIModel[] = [
     name: "Qwen Image",
     description: "通义图像 API，支持创作者和开发者轻松生成与编辑照片级真实图像。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760433599320dsgya6hv.png",
+    icon: "/icons/models/qwen.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -348,7 +348,7 @@ export const aiModels: AIModel[] = [
     name: "Qwen Image 2.0",
     description: "阿里通义统一图像模型，支持真实感生成、结构化文字渲染及原生 2K 输出。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1773624843072_OvX6TKSC.png",
+    icon: "/icons/models/qwen.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -356,7 +356,7 @@ export const aiModels: AIModel[] = [
     name: "Qwen Image Edit",
     description: "基于通义图像的开源图像编辑模型，支持语义编辑和外观编辑，操作简单直观。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760433511788x6nqijt3.png",
+    icon: "/icons/models/qwen.svg",
     tags: ["图生图"],
   },
   {
@@ -364,7 +364,7 @@ export const aiModels: AIModel[] = [
     name: "Z-Image",
     description: "通义万相高效图像生成模型，输出照片级真实图像，支持 Turbo 快速生成。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1764668121857_aFTwunEO.webp",
+    icon: "/icons/models/qwen.svg",
     tags: ["文生图"],
   },
   {
@@ -372,7 +372,7 @@ export const aiModels: AIModel[] = [
     name: "Recraft Crisp Upscale",
     description: "Recraft 智能放大 API，将模糊照片转化为清晰杰作，终极免费图像超分辨率工具。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/17604347566588mjtbog0.webp",
+    icon: "/icons/models/recraft.svg",
     tags: ["图生图"],
   },
   {
@@ -380,7 +380,7 @@ export const aiModels: AIModel[] = [
     name: "Recraft Remove Background",
     description: "Recraft AI 背景移除 API，精准分离主体与背景，输出干净透明的 PNG 图像。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760434543121linen0ej.png",
+    icon: "/icons/models/recraft.svg",
     tags: ["图生图"],
   },
   {
@@ -388,7 +388,7 @@ export const aiModels: AIModel[] = [
     name: "Topaz Image Upscale",
     description: "Topaz Labs AI 图像增强模型，提升分辨率并还原细节，保持高保真画质。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1763435260839_zZ9NIgks.png",
+    icon: "/icons/models/topazlabs.svg",
     tags: ["图生图"],
   },
   {
@@ -396,7 +396,7 @@ export const aiModels: AIModel[] = [
     name: "Wan2.7 Image",
     description: "阿里统一图像模型系列，支持文生图、图像编辑等多种生成与编辑模式。",
     category: "image",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1775115239124_hXRRIIrJ.webp",
+    icon: "/icons/models/alibaba.svg",
     tags: ["文生图", "图生图"],
   },
   {
@@ -404,7 +404,7 @@ export const aiModels: AIModel[] = [
     name: "Veo 3.1",
     description: "Google DeepMind 升级版视频模型，支持真实运动生成、延长时长及多图参考。",
     category: "video",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/google.svg",
     tags: ["热门", "文生视频", "图生视频"],
     isHot: true,
   },
@@ -413,7 +413,7 @@ export const aiModels: AIModel[] = [
     name: "Kling 3.0",
     description: "快手可灵视频生成模型，支持文生视频、图生视频及多镜头故事叙事。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/kling.svg",
     tags: ["热门", "文生视频", "图生视频"],
     isHot: true,
   },
@@ -422,7 +422,7 @@ export const aiModels: AIModel[] = [
     name: "Seedance 2.5",
     description: "字节跳动升级版视频模型，支持 30 秒生成、原生 4K 输出及多模态参考输入。",
     category: "video",
-    icon: "https://placehold.co/80x80/8b5cf6/ffffff?text=S",
+    icon: "/icons/models/bytedance.svg",
     tags: ["新品", "文生视频", "图生视频"],
     isNew: true,
   },
@@ -431,7 +431,7 @@ export const aiModels: AIModel[] = [
     name: "HappyHorse-1.0",
     description: "阿里 ATH 研发的新兴 AI 视频模型，迅速成为最受瞩目的视频生成新模型之一。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/happyhorse.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -439,7 +439,7 @@ export const aiModels: AIModel[] = [
     name: "HappyHorse-1.1",
     description: "基于 HappyHorse-1.0 的升级视频模型，提示词理解更好，运动更流畅自然。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1784273103040_USqy563j.png",
+    icon: "/icons/models/happyhorse.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -447,7 +447,7 @@ export const aiModels: AIModel[] = [
     name: "OmniHuman 1.5",
     description: "字节跳动 AI 数字人模型，通过单张图片和音频生成逼真的说话视频。",
     category: "video",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1781519396920_v6WZVKQQ.png",
+    icon: "/icons/models/alibaba.svg",
     tags: ["唇形同步"],
   },
   {
@@ -455,7 +455,7 @@ export const aiModels: AIModel[] = [
     name: "Seedance 1.0 Pro Fast",
     description: "字节跳动视频生成模型，继承 Seedance 1.0 Pro 核心质量，渲染速度提升 3 倍。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/bytedance.svg",
     tags: ["图生视频"],
   },
   {
@@ -463,7 +463,7 @@ export const aiModels: AIModel[] = [
     name: "Seedance 1.5 Pro",
     description: "字节跳动音视频生成模型，支持电影级画质、同步音频及音效生成。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1783576840914_q2FEdx8j.png",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -471,7 +471,7 @@ export const aiModels: AIModel[] = [
     name: "Seedance 2.0",
     description: "字节跳动多模态视频模型，优化快速真实视频生成，支持文生视频和图生视频。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760433549799kz5yzjvx.png",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -479,7 +479,7 @@ export const aiModels: AIModel[] = [
     name: "Seedance 2.0 Mini",
     description: "字节跳动高性价比视频模型，生成更快、推理成本更低，适合大规模应用。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1783576840914_q2FEdx8j.png",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -487,7 +487,7 @@ export const aiModels: AIModel[] = [
     name: "Seedance V1",
     description: "Seedance 1.0 API，将创意灵感化为动态影像，让你的故事栩栩如生。",
     category: "video",
-    icon: "https://placehold.co/80x80/8b5cf6/ffffff?text=S",
+    icon: "/icons/models/bytedance.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -495,7 +495,7 @@ export const aiModels: AIModel[] = [
     name: "Volcengine Lip Sync",
     description: "火山引擎唇形同步 API，实现像素级精准对口型及 AI 配音，让每帧画面自然开口。",
     category: "video",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1781657706996_r4GY3UUZ.png",
+    icon: "/icons/models/volcengine.svg",
     tags: ["唇形同步"],
   },
   {
@@ -503,7 +503,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini Omni",
     description: "Google 多模态创作模型，支持从多种输入类型生成内容，涵盖视频和音频。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1784273103040_USqy563j.png",
+    icon: "/icons/models/gemini.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -511,7 +511,7 @@ export const aiModels: AIModel[] = [
     name: "Veo 3",
     description: "Google DeepMind 下一代视频生成模型，支持文生视频和图生视频，画质逼真。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1784273103040_USqy563j.png",
+    icon: "/icons/models/google.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -519,7 +519,7 @@ export const aiModels: AIModel[] = [
     name: "Kling 2.5 Turbo",
     description: "快手可灵最新视频生成模型，支持文生视频和图生视频，Turbo 模式更快速。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1784273103040_USqy563j.png",
+    icon: "/icons/models/kling.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -527,7 +527,7 @@ export const aiModels: AIModel[] = [
     name: "Kling 2.6",
     description: "可灵 AI 音视频生成模型，同步输出视频、语音、环境音及音效。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760433549799kz5yzjvx.png",
+    icon: "/icons/models/kling.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -535,7 +535,7 @@ export const aiModels: AIModel[] = [
     name: "Kling 2.6 Motion Control",
     description: "快手可灵运动控制 API，将真实视频中的运动轨迹迁移到目标角色上。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/kling.svg",
     tags: ["视频转视频"],
   },
   {
@@ -543,7 +543,7 @@ export const aiModels: AIModel[] = [
     name: "Kling 3.0 Motion Control",
     description: "快手可灵 AI 视频运动模型，将参考视频的动作迁移至目标角色。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/kling.svg",
     tags: ["视频转视频"],
   },
   {
@@ -551,7 +551,7 @@ export const aiModels: AIModel[] = [
     name: "Kling 3.0 Turbo",
     description: "快手可灵 3.0 系列加速版，在高质量视觉与快速生成之间取得平衡。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/kling.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -559,7 +559,7 @@ export const aiModels: AIModel[] = [
     name: "Kling AI Avatar 2.0",
     description: "快手可灵音频驱动数字人模型，通过单张图片和语音生成表现力丰富的说话视频。",
     category: "video",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/17619663858536k4b38ze.png",
+    icon: "/icons/models/kling.svg",
     tags: ["唇形同步"],
   },
   {
@@ -567,7 +567,7 @@ export const aiModels: AIModel[] = [
     name: "Kling V2.1",
     description: "可灵 2.1 模型支持前沿视频生成，具备超真实运动、高级物理模拟及高分辨率输出。",
     category: "video",
-    icon: "https://placehold.co/80x80/ef4444/ffffff?text=K",
+    icon: "/icons/models/kling.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -575,7 +575,7 @@ export const aiModels: AIModel[] = [
     name: "Hailuo 02",
     description: "MiniMax 高级 AI 视频生成模型，将文字或图像转化为电影感短片。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1784273103040_USqy563j.png",
+    icon: "/icons/models/hailuo.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -583,7 +583,7 @@ export const aiModels: AIModel[] = [
     name: "Hailuo 2.3",
     description: "MiniMax 高保真视频生成模型，支持真实运动、表现力丰富的角色及精细场景。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/hailuo.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -591,7 +591,7 @@ export const aiModels: AIModel[] = [
     name: "InfiniteTalk",
     description: "幂格科技开发的 AI 唇形同步 API，将图片或文字与音频结合生成说话视频。",
     category: "video",
-    icon: "https://placehold.co/80x80/6b7280/ffffff?text=I",
+    icon: "/icons/models/alibaba.svg",
     tags: ["语音生成视频", "唇形同步"],
   },
   {
@@ -599,7 +599,7 @@ export const aiModels: AIModel[] = [
     name: "Runway Gen-4",
     description: "基于 Runway AI 革命性 Gen-4 架构的 API，引领内容创作的未来。",
     category: "video",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/custom-page/akr/section-images/1760352550893x3wzqgla.webp",
+    icon: "/icons/models/runway.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -607,7 +607,7 @@ export const aiModels: AIModel[] = [
     name: "Topaz Video Upscaler",
     description: "Topaz 专业级 AI 视频增强 API，还原细节、降噪并提升视频分辨率。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1784273103040_USqy563j.png",
+    icon: "/icons/models/topazlabs.svg",
     tags: ["视频转视频"],
   },
   {
@@ -615,7 +615,7 @@ export const aiModels: AIModel[] = [
     name: "Wan 2.2 A14B Speech to Video Turbo",
     description: "通义万相 2.2 A14B Turbo 语音生视频 API，将静态图片和音频转化为动态表情视频。",
     category: "video",
-    icon: "https://placehold.co/80x80/06b6d4/ffffff?text=W",
+    icon: "/icons/models/alibaba.svg",
     tags: ["语音生成视频"],
   },
   {
@@ -623,7 +623,7 @@ export const aiModels: AIModel[] = [
     name: "Wan 2.2 Animate",
     description: "阿里通义实验室 Wan 2.2 Animate API，生成具有动作、表情和光照的真实角色视频。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/alibaba.svg",
     tags: ["图生视频"],
   },
   {
@@ -631,7 +631,7 @@ export const aiModels: AIModel[] = [
     name: "Wan 2.5",
     description: "阿里 Wan 2.5 API，专为电影感 AI 视频生成设计，支持文生视频和图生视频。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1775115239124_hXRRIIrJ.webp",
+    icon: "/icons/models/alibaba.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -639,7 +639,7 @@ export const aiModels: AIModel[] = [
     name: "Wan 2.6",
     description: "阿里最新 AI 视频模型，支持高性价比多镜头 1080p 生成，角色与场景稳定。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/alibaba.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -647,7 +647,7 @@ export const aiModels: AIModel[] = [
     name: "Wan 2.7 Video",
     description: "阿里通义实验室 AI 视频套件，覆盖文生视频、图生视频等四种生成模式。",
     category: "video",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1775570986415_ghhtjD4T.png",
+    icon: "/icons/models/alibaba.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -655,7 +655,7 @@ export const aiModels: AIModel[] = [
     name: "Wan V2.2 A14B",
     description: "通义万相 2.2 A14B Turbo API，采用 MoE 混合专家架构，兼顾性能与效率。",
     category: "video",
-    icon: "https://placehold.co/80x80/06b6d4/ffffff?text=W",
+    icon: "/icons/models/alibaba.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -663,7 +663,7 @@ export const aiModels: AIModel[] = [
     name: "Grok Imagine",
     description: "xAI 视频生成模型，支持高质量视频创作，具备真实运动与原生音频生成。",
     category: "video",
-    icon: "https://static.aiquickdraw.com/aa/kie-maket/1783506167073_KcF1s2E3.png",
+    icon: "/icons/models/grok.svg",
     tags: ["文生视频", "图生视频"],
   },
   {
@@ -671,7 +671,7 @@ export const aiModels: AIModel[] = [
     name: "Grok Imagine Video 1.5",
     description: "xAI 视频生成模型，创建逼真视频并生成同步音频，支持图生视频。",
     category: "video",
-    icon: "https://file.aiquickdraw.com/static//kie-maket/1760602507559tkxwc40s.png",
+    icon: "/icons/models/grok.svg",
     tags: ["图生视频"],
   },
   {
@@ -679,7 +679,7 @@ export const aiModels: AIModel[] = [
     name: "ElevenLabs Text to Dialogue V3",
     description: "ElevenLabs V3 支持富表现力的多语言文本转对话，具备音频标签控制与多说话人支持。",
     category: "audio",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1768557100213_oAru1Ofg.png",
+    icon: "/icons/models/elevenlabs.svg",
     tags: ["语音合成"],
   },
   {
@@ -687,7 +687,7 @@ export const aiModels: AIModel[] = [
     name: "ElevenLabs TTS",
     description: "ElevenLabs 语音合成 API，生成逼真自然的人声，让内容更具感染力。",
     category: "audio",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760433667541h7dtoy2i.png",
+    icon: "/icons/models/elevenlabs.svg",
     tags: ["语音合成"],
   },
   {
@@ -695,7 +695,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini 2.5 Pro Preview TTS",
     description: "Google 高端语音合成模型，专为录音棚品质、高保真音频生成而设计。",
     category: "audio",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/tools/example/1784268770224_M2jcs7BV.png",
+    icon: "/icons/models/gemini.svg",
     tags: ["语音合成"],
   },
   {
@@ -703,7 +703,7 @@ export const aiModels: AIModel[] = [
     name: "Gemini 3.1 Flash TTS",
     description: "Google 富表现力语音合成模型预览版，生成自然流畅的 AI 语音。",
     category: "audio",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://static.aiquickdraw.com/aa/kie-maket/1784273103040_USqy563j.png",
+    icon: "/icons/models/gemini.svg",
     tags: ["语音合成"],
   },
   {
@@ -711,7 +711,7 @@ export const aiModels: AIModel[] = [
     name: "Suno V5.5",
     description: "Kie AI 音乐生成 API，将文字描述转化为包含人声和乐器伴奏的完整歌曲。",
     category: "audio",
-    icon: "https://kie.ai/cdn-cgi/image/width=1080,quality=85,fit=scale-down,format=webp/https://file.aiquickdraw.com/static//kie-maket/1760433549799kz5yzjvx.png",
+    icon: "/icons/models/suno.svg",
     tags: ["音乐生成"],
   },
 ];

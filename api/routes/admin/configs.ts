@@ -186,7 +186,7 @@ const defaultConfigs: Record<string, { description: string; value: Record<string
           name: '融川 OneAPI',
           enabled: true,
           baseUrl: 'https://rongchuan.ai',
-          apiKey: 'sk-UC4uuRrD3dvUD1xQomxJhwl0t9PMbviwhL3gvTjBTu4RFL9R',
+          apiKey: '',
           timeoutSeconds: 120,
           costMultiplier: 1,
           models: [
@@ -205,7 +205,7 @@ const defaultConfigs: Record<string, { description: string; value: Record<string
           name: 'KIE AI',
           enabled: true,
           baseUrl: 'https://api.kie.ai',
-          apiKey: '06053239c868c8ccda5c9a8d5e4528d9',
+          apiKey: '',
           timeoutSeconds: 300,
           costMultiplier: 1,
           models: [

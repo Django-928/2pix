@@ -291,39 +291,72 @@ export default function AdminModelsPage() {
     }
   };
 
-  /** 从内置模型库 (src/data/models.ts) 同步到数据库 */
+  /** 从内置模型库 (src/data/models.ts) 同步到数据库
+   * 新增模型直接插入；已存在的模型更新图标、名称、描述、分类等元数据（保留 status/sort_order）
+   */
   const handleSyncBuiltinModels = async () => {
     setSyncingBuiltin(true);
     try {
-      const existingIds = new Set(models.map((m) => m.id));
+      const existingMap = new Map(models.map((m) => [m.id, m]));
       let added = 0;
-      let skipped = 0;
+      let updated = 0;
+      let failed = 0;
+
       for (const m of builtinModels) {
-        if (existingIds.has(m.id)) {
-          skipped++;
+        const existing = existingMap.get(m.id);
+        const payload = {
+          name: m.name,
+          description: m.description || '',
+          icon: m.icon || '',
+          category: m.category,
+          is_new: m.isNew ? 1 : 0,
+          is_hot: m.isHot ? 1 : 0,
+        };
+
+        if (!existing) {
+          try {
+            await api.post('/admin/models', {
+              id: m.id,
+              ...payload,
+              status: 'active',
+              sort_order: 0,
+            });
+            added++;
+          } catch {
+            failed++;
+          }
           continue;
         }
+
+        // 已存在则更新图标等元数据，避免同步后还是旧图标
+        const iconChanged = existing.icon !== payload.icon;
+        const needUpdate =
+          iconChanged ||
+          existing.name !== payload.name ||
+          existing.description !== payload.description ||
+          existing.category !== payload.category ||
+          existing.is_new !== payload.is_new ||
+          existing.is_hot !== payload.is_hot;
+
+        if (!needUpdate) continue;
+
         try {
-          await api.post('/admin/models', {
-            id: m.id,
-            name: m.name,
-            description: m.description || '',
-            icon: m.icon || '',
-            category: m.category,
-            status: 'active',
-            sort_order: 0,
-            is_new: m.isNew ? 1 : 0,
-            is_hot: m.isHot ? 1 : 0,
-          });
-          added++;
+          await api.put(`/admin/models/${m.id}`, payload);
+          updated++;
         } catch {
-          // 模型可能已存在，跳过
+          failed++;
         }
       }
-      if (added > 0) {
-        toast.success(`同步完成：新增 ${added} 个模型${skipped > 0 ? `，跳过 ${skipped} 个已存在` : ''}`);
+
+      const messages: string[] = [];
+      if (added > 0) messages.push(`新增 ${added} 个`);
+      if (updated > 0) messages.push(`更新 ${updated} 个`);
+      if (failed > 0) messages.push(`失败 ${failed} 个`);
+
+      if (messages.length > 0) {
+        toast.success(`同步完成：${messages.join('，')}`);
       } else {
-        toast.info(`所有 ${skipped} 个内置模型均已存在，无需同步`);
+        toast.info('所有内置模型已与数据库保持一致');
       }
       loadModels();
     } catch (err) {

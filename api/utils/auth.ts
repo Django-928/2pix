@@ -4,7 +4,10 @@ import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import db from '../db/index.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || '2pix-admin-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface AuthUser {
