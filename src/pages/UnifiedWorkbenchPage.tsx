@@ -128,6 +128,7 @@ export default function UnifiedWorkbenchPage() {
   const balance = useAccountStore((s) => s.balance);
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
   const projects = useStore((s) => s.projects);
+  const loadProjects = useStore((s) => s.loadProjects);
   const toast = useToast();
   const displayName = authUser?.nickname || authUser?.username || '用户';
   const displayBalance = authUser?.balance ?? balance;
@@ -135,7 +136,8 @@ export default function UnifiedWorkbenchPage() {
   useEffect(() => {
     refreshMe();
     refreshBalance().catch(() => undefined);
-  }, [refreshMe, refreshBalance]);
+    loadProjects().catch(() => undefined);
+  }, [refreshMe, refreshBalance, loadProjects]);
 
   const filteredModels = useMemo(() => {
     return filterModels(models, primaryTab, secondaryTab, searchQuery);

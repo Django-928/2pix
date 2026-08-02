@@ -144,10 +144,28 @@ export default function ProfileOverviewTab({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredProjects.slice(0, 6).map((project) => (
               <div key={project.id} className="rounded-2xl bg-[#171717] border border-white/[0.08] p-3">
-                <div className="aspect-video rounded-xl bg-[#222] flex items-center justify-center text-[#777]">
-                  {project.type === 'image' && <Image className="w-7 h-7" />}
-                  {project.type === 'video' && <Video className="w-7 h-7" />}
-                  {project.type === 'audio' && <Music className="w-7 h-7" />}
+                <div className="aspect-video rounded-xl bg-[#222] flex items-center justify-center text-[#777] overflow-hidden">
+                  {project.outputUrl && project.type === 'image' && (
+                    <img
+                      src={project.outputUrl}
+                      alt={project.name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
+                  {project.outputUrl && project.type === 'video' && (
+                    <video
+                      src={project.outputUrl}
+                      className="w-full h-full object-cover"
+                      muted
+                      preload="metadata"
+                    />
+                  )}
+                  {!project.outputUrl && project.type === 'image' && <Image className="w-7 h-7" />}
+                  {!project.outputUrl && project.type === 'video' && <Video className="w-7 h-7" />}
+                  {!project.outputUrl && project.type === 'audio' && <Music className="w-7 h-7" />}
                 </div>
                 <p className="text-sm text-[#eee] mt-3 truncate">{project.name}</p>
                 <p className="text-[11px] text-[#666] mt-1">{new Date(project.createdAt).toLocaleString()}</p>

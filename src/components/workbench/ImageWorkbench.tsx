@@ -34,6 +34,31 @@ interface ImageTurn {
   createdAt: number;
 }
 
+/* ── 单个模型状态 ── */
+interface ModelState {
+  prompt: string;
+  referenceImages: string[];
+  billingError: string;
+  previewImage: string | null;
+  selectedStyle: string;
+  aspectRatio: string;
+  numImagesState: number;
+  activeTab: 'style' | 'ratio' | 'count' | null;
+  turns: ImageTurn[];
+}
+
+const defaultModelState: ModelState = {
+  prompt: '',
+  referenceImages: [],
+  billingError: '',
+  previewImage: null,
+  selectedStyle: '写实',
+  aspectRatio: '1:1',
+  numImagesState: 1,
+  activeTab: null,
+  turns: [],
+};
+
 /* ── 生成中的进度卡片（AI侧） ── */
 function GeneratingCard({ progress, count }: { progress: number; count: number }) {
   return (
@@ -167,35 +192,47 @@ function ParamTags({ style, ratio, count }: { style: string; ratio: string; coun
 
 /* ─────────────── 图片工作台 ─────────────── */
 export default function ImageWorkbench({ model }: { model: AIModel }) {
-  const [prompt, setPrompt] = useState('');
-  const [referenceImages, setReferenceImages] = useState<string[]>([]);
-  const [billingError, setBillingError] = useState('');
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [selectedStyle, setSelectedStyle] = useState('写实');
+  /* ── 按模型隔离的状态 ── */
+  const [modelStateMap, setModelStateMap] = useState<Record<string, ModelState>>({});
+  const currentState = modelStateMap[model.id] ?? defaultModelState;
+  const {
+    prompt,
+    referenceImages,
+    billingError,
+    previewImage,
+    selectedStyle,
+    aspectRatio,
+    numImagesState,
+    activeTab,
+    turns,
+  } = currentState;
+
+  const updateCurrentState = (updater: (prev: ModelState) => ModelState) => {
+    setModelStateMap((prev) => {
+      const current = prev[model.id] ?? { ...defaultModelState };
+      return { ...prev, [model.id]: updater(current) };
+    });
+  };
+
   const download = useFileDownload();
-  const [aspectRatio, setAspectRatio] = useState('1:1');
-  const [numImagesState, setNumImagesState] = useState(1);
-  const [activeTab, setActiveTab] = useState<'style' | 'ratio' | 'count' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const [turns, setTurns] = useState<ImageTurn[]>([]);
 
   const { projects, loadProjects } = useStore();
   const { refreshBalance } = useAccountStore();
   const toast = useToast();
 
-  // 从 works 历史恢复对话流（仅首次挂载）
-  const initializedRef = useRef(false);
+  // 从 works 历史恢复对话流（首次切换到该模型时）
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+    if (turns.length > 0) return;
     const modelWorks = projects
       .filter((p) => p.type === 'image' && p.model === model.id && p.outputUrl)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 20);
     if (modelWorks.length > 0) {
-      setTurns(
-        modelWorks.map((w) => ({
+      updateCurrentState((prev) => ({
+        ...prev,
+        turns: modelWorks.map((w) => ({
           id: `turn-${w.id}`,
           prompt: w.name,
           params: w.inputParams as { style?: string; count?: number; resolution?: string } || {},
@@ -204,8 +241,9 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
           progress: 100,
           createdAt: new Date(w.createdAt).getTime(),
         })),
-      );
+      }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model.id, projects]);
 
   const isGenerating = turns.some((t) => t.status === 'generating');
@@ -239,7 +277,10 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
-        setReferenceImages((prev) => (prev.length < 10 ? [...prev, result] : prev));
+        updateCurrentState((prev) => ({
+          ...prev,
+          referenceImages: prev.referenceImages.length < 10 ? [...prev.referenceImages, result] : prev.referenceImages,
+        }));
       };
       reader.readAsDataURL(file);
     });
@@ -247,14 +288,18 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   };
 
   const handleRemoveRef = (idx: number) => {
-    setReferenceImages((prev) => prev.filter((_, i) => i !== idx));
+    updateCurrentState((prev) => ({
+      ...prev,
+      referenceImages: prev.referenceImages.filter((_, i) => i !== idx),
+    }));
   };
 
   /** 更新某个 turn 的字段 */
   const updateTurn = useCallback((turnId: string, patch: Partial<ImageTurn>) => {
-    setTurns((prev) =>
-      prev.map((t) => (t.id === turnId ? { ...t, ...patch } : t)),
-    );
+    updateCurrentState((prev) => ({
+      ...prev,
+      turns: prev.turns.map((t) => (t.id === turnId ? { ...t, ...patch } : t)),
+    }));
   }, []);
 
   /** 轮询单个 KIE 任务并更新对应 turn */
@@ -270,8 +315,9 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
     if (result?.url) {
       resolved = true;
-      setTurns((prev) =>
-        prev.map((t) => {
+      updateCurrentState((prev) => ({
+        ...prev,
+        turns: prev.turns.map((t) => {
           if (t.id !== turnId) return t;
           const newImages = [...t.images];
           // 找到空位填入，或追加
@@ -291,7 +337,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             taskId: allDone ? undefined : t.taskId,
           };
         }),
-      );
+      }));
 
       // 回写 works 表的 output_url
       if (workId) {
@@ -308,8 +354,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
-    setBillingError('');
-    setActiveTab(null);
+    updateCurrentState((prev) => ({ ...prev, billingError: '', activeTab: null }));
 
     const turnId = `turn-${Date.now()}`;
     const newTurn: ImageTurn = {
@@ -321,7 +366,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
       progress: 0,
       createdAt: Date.now(),
     };
-    setTurns((prev) => [...prev, newTurn]);
+    updateCurrentState((prev) => ({ ...prev, turns: [...prev.turns, newTurn] }));
 
     try {
       await runBillableTask({
@@ -394,7 +439,10 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
         status: 'failed',
         error: error instanceof Error ? error.message : '生成失败',
       });
-      setBillingError(error instanceof Error ? error.message : '生成失败');
+      updateCurrentState((prev) => ({
+        ...prev,
+        billingError: error instanceof Error ? error.message : '生成失败',
+      }));
     }
   };
 
@@ -428,7 +476,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
           </div>
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
             {samplePrompts.map((text) => (
-              <PromptCard key={text} text={text} onClick={() => setPrompt(text)} />
+              <PromptCard key={text} text={text} onClick={() => updateCurrentState((prev) => ({ ...prev, prompt: text }))} />
             ))}
           </div>
         </div>
@@ -476,7 +524,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                 {(turn.status === 'generating' || turn.status === 'completed') && turn.images.length > 0 && (
                   <ImageGrid
                     images={turn.images}
-                    onPreview={setPreviewImage}
+                    onPreview={(url) => updateCurrentState((prev) => ({ ...prev, previewImage: url }))}
                     onDownload={handleDownload}
                   />
                 )}
@@ -540,7 +588,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             {/* 文本输入 */}
             <textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => updateCurrentState((prev) => ({ ...prev, prompt: e.target.value }))}
               placeholder={isEmpty ? "描述画面中的物体、风格及文字排版，注重指令精准与细节还原。" : "继续生成..."}
               className="w-full bg-transparent text-[#e4e4e7] placeholder-[#52525b] text-sm resize-none outline-none min-h-[48px] max-h-[120px]"
               rows={2}
@@ -560,7 +608,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                     {STYLE_TAGS.map((tag) => (
                       <button
                         key={tag}
-                        onClick={() => setSelectedStyle(tag)}
+                        onClick={() => updateCurrentState((prev) => ({ ...prev, selectedStyle: tag }))}
                         className={`px-3 py-1.5 rounded-full text-xs transition-all border ${
                           selectedStyle === tag
                             ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa] border-[rgba(139,92,246,0.25)]'
@@ -577,7 +625,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                     {ASPECT_RATIOS.map((ratio) => (
                       <button
                         key={ratio.value}
-                        onClick={() => setAspectRatio(ratio.value)}
+                        onClick={() => updateCurrentState((prev) => ({ ...prev, aspectRatio: ratio.value }))}
                         className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs transition-all border ${
                           aspectRatio === ratio.value
                             ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa] border-[rgba(139,92,246,0.25)]'
@@ -595,7 +643,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
                     {[1, 2, 4].map((n) => (
                       <button
                         key={n}
-                        onClick={() => setNumImagesState(n)}
+                        onClick={() => updateCurrentState((prev) => ({ ...prev, numImagesState: n }))}
                         className={`flex-1 flex items-center justify-center py-2.5 rounded-xl text-xs transition-all border ${
                           numImagesState === n
                             ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa] border-[rgba(139,92,246,0.25)]'
@@ -617,7 +665,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               <div className="flex items-center gap-1">
                 {/* 风格标签按钮 */}
                 <button
-                  onClick={() => setActiveTab(activeTab === 'style' ? null : 'style')}
+                  onClick={() => updateCurrentState((prev) => ({ ...prev, activeTab: prev.activeTab === 'style' ? null : 'style' }))}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all border ${
                     activeTab === 'style'
                       ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa] border-[rgba(139,92,246,0.25)]'
@@ -631,7 +679,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
                 {/* 比例标签按钮 */}
                 <button
-                  onClick={() => setActiveTab(activeTab === 'ratio' ? null : 'ratio')}
+                  onClick={() => updateCurrentState((prev) => ({ ...prev, activeTab: prev.activeTab === 'ratio' ? null : 'ratio' }))}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all border ${
                     activeTab === 'ratio'
                       ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa] border-[rgba(139,92,246,0.25)]'
@@ -645,7 +693,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
                 {/* 数量标签按钮 */}
                 <button
-                  onClick={() => setActiveTab(activeTab === 'count' ? null : 'count')}
+                  onClick={() => updateCurrentState((prev) => ({ ...prev, activeTab: prev.activeTab === 'count' ? null : 'count' }))}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all border ${
                     activeTab === 'count'
                       ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa] border-[rgba(139,92,246,0.25)]'
@@ -676,7 +724,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
       {previewImage && (
         <div
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setPreviewImage(null)}
+          onClick={() => updateCurrentState((prev) => ({ ...prev, previewImage: null }))}
         >
           <div className="relative max-w-4xl max-h-[90vh] w-full flex items-center justify-center">
             <img
@@ -686,7 +734,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               onClick={(e) => e.stopPropagation()}
             />
             <button
-              onClick={() => setPreviewImage(null)}
+              onClick={() => updateCurrentState((prev) => ({ ...prev, previewImage: null }))}
               className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[#333] border border-white/[0.1] text-white flex items-center justify-center hover:bg-[#444] transition-all"
             >
               <X className="w-4 h-4" />

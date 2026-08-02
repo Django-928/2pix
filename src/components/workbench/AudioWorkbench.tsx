@@ -38,6 +38,39 @@ interface MusicTrack {
   providerInfo: string;
 }
 
+/* ── 单个模型状态 ── */
+interface ModelState {
+  text: string;
+  isGenerating: boolean;
+  generated: boolean;
+  isPlaying: boolean;
+  billingError: string;
+  activeTab: 'custom' | 'describe';
+  lyrics: string;
+  styleText: string;
+  selectedInstruments: string[];
+  audioDuration: string;
+  version: string;
+  tracks: MusicTrack[];
+  playingTrackId: string | null;
+}
+
+const defaultModelState: ModelState = {
+  text: '',
+  isGenerating: false,
+  generated: false,
+  isPlaying: false,
+  billingError: '',
+  activeTab: 'describe',
+  lyrics: '',
+  styleText: '',
+  selectedInstruments: [],
+  audioDuration: '60s',
+  version: 'v2',
+  tracks: [],
+  playingTrackId: null,
+};
+
 /* ── 乐器标签 ── */
 const INSTRUMENT_TAGS = [
   { label: 'Piano', icon: Piano },
@@ -177,26 +210,36 @@ function MusicCard({
    主组件
    ══════════════════════════════════════════════════════════════════ */
 export default function AudioWorkbench({ model }: { model: AIModel }) {
-  /* ── 核心业务 state（保留原有逻辑） ── */
-  const [text, setText] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generated, setGenerated] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [billingError, setBillingError] = useState('');
+  /* ── 按模型隔离的状态 ── */
+  const [modelStateMap, setModelStateMap] = useState<Record<string, ModelState>>({});
+  const currentState = modelStateMap[model.id] ?? defaultModelState;
+  const {
+    text,
+    isGenerating,
+    generated,
+    isPlaying,
+    billingError,
+    activeTab,
+    lyrics,
+    styleText,
+    selectedInstruments,
+    audioDuration,
+    version,
+    tracks,
+    playingTrackId,
+  } = currentState;
+
+  const updateCurrentState = (updater: (prev: ModelState) => ModelState) => {
+    setModelStateMap((prev) => {
+      const current = prev[model.id] ?? { ...defaultModelState };
+      return { ...prev, [model.id]: updater(current) };
+    });
+  };
+
   const speed = '1.0x';
   const quality = '标准';
   const emotion = '自动';
   const numAudio = 1;
-
-  /* ── 新增 UI state ── */
-  const [activeTab, setActiveTab] = useState<'custom' | 'describe'>('describe');
-  const [lyrics, setLyrics] = useState('');
-  const [styleText, setStyleText] = useState('');
-  const [selectedInstruments, setSelectedInstruments] = useState<string[]>([]);
-  const [audioDuration, setAudioDuration] = useState('60s');
-  const [version, setVersion] = useState('v2');
-  const [tracks, setTracks] = useState<MusicTrack[]>([]);
-  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -216,16 +259,18 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
 
   /* ── 乐器标签切换 ── */
   const toggleInstrument = (tag: string) => {
-    setSelectedInstruments((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-    );
+    updateCurrentState((prev) => ({
+      ...prev,
+      selectedInstruments: prev.selectedInstruments.includes(tag)
+        ? prev.selectedInstruments.filter((t) => t !== tag)
+        : [...prev.selectedInstruments, tag],
+    }));
   };
 
   /* ── 原有 API 调用逻辑（完整保留） ── */
   const handleGenerate = async () => {
     if (!text.trim()) return;
-    setBillingError('');
-    setIsGenerating(true);
+    updateCurrentState((prev) => ({ ...prev, billingError: '', isGenerating: true }));
     try {
       await runBillableTask({
         model: model.id,
@@ -240,17 +285,21 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
             voice: emotion,
             language: 'zh',
           });
-          const newTrack: MusicTrack = {
-            id: `track-${Date.now()}`,
-            title: text.substring(0, 20),
-            duration: audioDuration,
-            durationSec,
-            gradient: gradients[tracks.length % gradients.length],
-            providerInfo: '',
-          };
-
-          setTracks((prev) => [...prev, newTrack]);
-          setGenerated(true);
+          updateCurrentState((prev) => {
+            const newTrack: MusicTrack = {
+              id: `track-${Date.now()}`,
+              title: text.substring(0, 20),
+              duration: audioDuration,
+              durationSec,
+              gradient: gradients[prev.tracks.length % gradients.length],
+              providerInfo: '',
+            };
+            return {
+              ...prev,
+              tracks: [...prev.tracks, newTrack],
+              generated: true,
+            };
+          });
 
           addProject({
             id: `proj-${Date.now()}`,
@@ -274,26 +323,27 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
         },
       });
     } catch (error) {
-      setBillingError(error instanceof Error ? error.message : '生成失败');
+      updateCurrentState((prev) => ({
+        ...prev,
+        billingError: error instanceof Error ? error.message : '生成失败',
+      }));
     } finally {
-      setIsGenerating(false);
+      updateCurrentState((prev) => ({ ...prev, isGenerating: false }));
     }
   };
 
   /* ── 播放切换 ── */
   const togglePlay = (trackId: string) => {
     if (playingTrackId === trackId) {
-      setIsPlaying(false);
-      setPlayingTrackId(null);
+      updateCurrentState((prev) => ({ ...prev, isPlaying: false, playingTrackId: null }));
       if (audioRef.current) audioRef.current.pause();
     } else {
-      setPlayingTrackId(trackId);
-      setIsPlaying(true);
+      updateCurrentState((prev) => ({ ...prev, playingTrackId: trackId, isPlaying: true }));
     }
   };
 
   /* ── audio 事件绑定 ── */
-  useMediaEvents(audioRef, setIsPlaying, () => setPlayingTrackId(null));
+  useMediaEvents(audioRef, (playing) => updateCurrentState((prev) => ({ ...prev, isPlaying: playing })), () => updateCurrentState((prev) => ({ ...prev, playingTrackId: null })));
 
   /* ── 生成按钮是否可用 ── */
   const canGenerate =
@@ -328,7 +378,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
               <PromptCard
                 key={prompt}
                 text={prompt}
-                onClick={() => setText(prompt)}
+                onClick={() => updateCurrentState((prev) => ({ ...prev, text: prompt }))}
               />
             ))}
           </div>
@@ -387,7 +437,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
             {/* ── Tab 切换：自定义模式 / 简单模式 ── */}
             <div className="flex items-center gap-1 mb-4 p-1 rounded-xl bg-white/[0.04] w-fit">
               <button
-                onClick={() => setActiveTab('describe')}
+                onClick={() => updateCurrentState((prev) => ({ ...prev, activeTab: 'describe' }))}
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   activeTab === 'describe'
                     ? 'bg-[rgba(139,92,246,0.2)] text-[#a78bfa] shadow-sm'
@@ -397,7 +447,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
                 简单模式
               </button>
               <button
-                onClick={() => setActiveTab('custom')}
+                onClick={() => updateCurrentState((prev) => ({ ...prev, activeTab: 'custom' }))}
                 className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   activeTab === 'custom'
                     ? 'bg-[rgba(139,92,246,0.2)] text-[#a78bfa] shadow-sm'
@@ -412,7 +462,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
             {activeTab === 'describe' && (
               <textarea
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => updateCurrentState((prev) => ({ ...prev, text: e.target.value }))}
                 placeholder="描述你想要的音乐，例如：一首关于夏日海边的轻快流行曲，吉他伴奏"
                 className="w-full bg-transparent text-[#e4e4e7] placeholder-[#52525b] text-sm resize-none outline-none min-h-[80px] max-h-[200px]"
                 rows={3}
@@ -425,7 +475,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
                 {/* 歌词文本框 */}
                 <textarea
                   value={lyrics}
-                  onChange={(e) => setLyrics(e.target.value)}
+                  onChange={(e) => updateCurrentState((prev) => ({ ...prev, lyrics: e.target.value }))}
                   placeholder="输入歌词（最少10个字）&#10;[Verse 1]&#10;你的歌词内容..."
                   className="w-full bg-white/[0.03] rounded-xl border border-white/[0.06] text-[#e4e4e7] placeholder-[#52525b] text-sm resize-none outline-none p-3 min-h-[120px] max-h-[240px] focus:border-[#8b5cf6]/30 transition-colors"
                   rows={5}
@@ -440,7 +490,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
                   <Guitar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
                   <input
                     value={styleText}
-                    onChange={(e) => setStyleText(e.target.value)}
+                    onChange={(e) => updateCurrentState((prev) => ({ ...prev, styleText: e.target.value }))}
                     placeholder="音乐风格，如 jazz, piano, female vocal"
                     className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[#e4e4e7] placeholder-[#52525b] text-sm outline-none focus:border-[#8b5cf6]/30 transition-colors"
                   />
@@ -477,7 +527,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
                 {DURATION_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    onClick={() => setAudioDuration(opt.value)}
+                    onClick={() => updateCurrentState((prev) => ({ ...prev, audioDuration: opt.value }))}
                     className={`px-2.5 py-1 rounded-md text-xs transition-all border ${
                       audioDuration === opt.value
                         ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa] border-[rgba(139,92,246,0.25)]'
@@ -495,7 +545,7 @@ export default function AudioWorkbench({ model }: { model: AIModel }) {
                 {VERSION_OPTIONS.map((v) => (
                   <button
                     key={v}
-                    onClick={() => setVersion(v)}
+                    onClick={() => updateCurrentState((prev) => ({ ...prev, version: v }))}
                     className={`px-2.5 py-1 rounded-md text-xs transition-all border ${
                       version === v
                         ? 'bg-[rgba(139,92,246,0.15)] text-[#a78bfa] border-[rgba(139,92,246,0.25)]'

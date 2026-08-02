@@ -429,8 +429,9 @@ async function requestKieAsyncTask(input: ProviderGenerateInput, provider: Provi
 
   // 2. 直接返回 taskId，让前端负责轮询
   // 后端不再轮询等待，避免阻塞请求
+  // 使用 KIE taskId 作为作品 ID，确保回调/轮询能更新同一条记录
   return {
-    id: `${input.category}-${Date.now()}`,
+    id: taskId,
     status: 'pending',
     providerMode: 'upstream',
     provider: provider.name,

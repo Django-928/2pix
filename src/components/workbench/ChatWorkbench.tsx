@@ -284,6 +284,8 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
   const [billingError, setBillingError] = useState('');
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  /* ── 单个模型绑定的会话 ID ── */
+  const [modelConversationMap, setModelConversationMap] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef(false);
@@ -303,13 +305,18 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentConversation?.messages]);
 
+  /* ── 模型切换时：恢复该模型已有会话，否则新建会话并记住映射 ── */
   useEffect(() => {
-    if (!currentConversationId) {
-      (async () => {
-        const newConv = await createConversation('新对话', model.name);
-        selectConversation(newConv.id);
-      })();
+    const existingConvId = modelConversationMap[model.id];
+    if (existingConvId) {
+      selectConversation(existingConvId);
+      return;
     }
+    (async () => {
+      const newConv = await createConversation('新对话', model.name);
+      selectConversation(newConv.id);
+      setModelConversationMap((prev) => ({ ...prev, [model.id]: newConv.id }));
+    })();
     // 仅在模型切换时初始化会话，避免会话状态变化时重复创建对话。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model.id]);

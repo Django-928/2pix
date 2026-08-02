@@ -1,7 +1,10 @@
-import { Search, ChevronRight, Clock, MoreHorizontal, X } from 'lucide-react';
+import { useState } from 'react';
+import { Search, ChevronRight, Clock, MoreHorizontal, X, Download, Image as ImageIcon, Wand2, Copy, Check } from 'lucide-react';
 import type { AIModel } from '@/data/models';
 import type { Project } from '@/types';
 import { useStore } from '@/store/useStore';
+import { useFileDownload } from '@/hooks/useFileDownload';
+import { useToast } from '@/components/ui/Toast';
 
 function getModelGradient(category: AIModel['category']) {
   switch (category) {
@@ -29,6 +32,8 @@ interface TaskSidebarProps {
   filteredTasks: Project[];
   previewTask: Project | null;
   setPreviewTask: (task: Project | null) => void;
+  onUseAsReference?: (url: string) => void;
+  onUpscale?: (task: Project) => void;
 }
 
 export function TaskSidebar({
@@ -42,14 +47,66 @@ export function TaskSidebar({
   filteredTasks,
   previewTask,
   setPreviewTask,
+  onUseAsReference,
+  onUpscale,
 }: TaskSidebarProps) {
   const conversations = useStore((s) => s.conversations);
+  const download = useFileDownload();
+  const toast = useToast();
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const modelFilter = activePanel === 'agent' && activeAgentId ? `agent:${activeAgentId}` : activeModel.id;
   const filteredConversations = conversations
     .filter((c) => c.model === modelFilter)
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const showConversations = (activePanel === 'agent' && activeAgentId) || activeModel.category === 'chat';
+
+  const copyText = async (text: string, key: string, successMsg: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      toast.success(successMsg);
+      setTimeout(() => setCopiedKey((prev) => (prev === key ? null : prev)), 2000);
+    } catch {
+      toast.error('复制失败，请手动复制');
+    }
+  };
+
+  const handleDownload = () => {
+    if (!previewTask?.outputUrl) return;
+    const ext = previewTask.type === 'video' ? 'mp4' : previewTask.type === 'audio' ? 'mp3' : 'png';
+    download({
+      url: previewTask.outputUrl,
+      filename: `${previewTask.name.slice(0, 40) || previewTask.type}-${Date.now()}.${ext}`,
+      fallback: () => window.open(previewTask.outputUrl, '_blank'),
+    });
+  };
+
+  const handleUseAsReference = () => {
+    if (!previewTask?.outputUrl) return;
+    if (onUseAsReference) {
+      onUseAsReference(previewTask.outputUrl);
+      toast.success('已设为当前模型的参考图');
+    } else {
+      copyText(previewTask.outputUrl, 'reference', '参考图链接已复制，可在生成页上传使用');
+    }
+  };
+
+  const handleUpscale = () => {
+    if (!previewTask) return;
+    if (onUpscale) {
+      onUpscale(previewTask);
+    } else {
+      const prompt = typeof previewTask.inputParams?.prompt === 'string' ? previewTask.inputParams.prompt : previewTask.name;
+      copyText(prompt, 'upscale', '提示词已复制，可切换至高分辨率模型重新生成');
+    }
+  };
+
+  const handleCopyPrompt = () => {
+    if (!previewTask) return;
+    const prompt = typeof previewTask.inputParams?.prompt === 'string' ? previewTask.inputParams.prompt : previewTask.name;
+    copyText(prompt, 'prompt', '提示词已复制');
+  };
 
   return (
     <>
@@ -258,6 +315,49 @@ export function TaskSidebar({
               {!previewTask.outputUrl && (
                 <div className="text-center py-12 text-white/40">暂无生成结果</div>
               )}
+
+              {/* ───── 操作按钮栏（参考即梦） ───── */}
+              {previewTask.outputUrl && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-xs text-white/80 hover:bg-white/[0.10] hover:text-white transition"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    下载
+                  </button>
+                  {(previewTask.type === 'image' || previewTask.type === 'video') && (
+                    <button
+                      type="button"
+                      onClick={handleUseAsReference}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-xs text-white/80 hover:bg-white/[0.10] hover:text-white transition"
+                    >
+                      {copiedKey === 'reference' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <ImageIcon className="w-3.5 h-3.5" />}
+                      用作参考图
+                    </button>
+                  )}
+                  {previewTask.type === 'image' && (
+                    <button
+                      type="button"
+                      onClick={handleUpscale}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-xs text-white/80 hover:bg-white/[0.10] hover:text-white transition"
+                    >
+                      {copiedKey === 'upscale' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Wand2 className="w-3.5 h-3.5" />}
+                      提升分辨率
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleCopyPrompt}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-xs text-white/80 hover:bg-white/[0.10] hover:text-white transition"
+                  >
+                    {copiedKey === 'prompt' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    复制提示词
+                  </button>
+                </div>
+              )}
+
               <div className="mt-4 space-y-2">
                 <h3 className="text-sm font-semibold text-white">{previewTask.name}</h3>
                 <div className="flex gap-2 text-[10px] text-white/40">

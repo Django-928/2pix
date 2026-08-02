@@ -58,6 +58,32 @@ export function saveWork(input: SaveWorkInput) {
   );
 }
 
+export interface UpdateWorkInput {
+  id: string;
+  status?: WorkStatus;
+  outputUrl?: string | null;
+}
+
+export function updateWorkById(input: UpdateWorkInput) {
+  const sets: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (input.status !== undefined) {
+    sets.push('status = ?');
+    values.push(input.status);
+  }
+  if (input.outputUrl !== undefined) {
+    sets.push('output_url = ?');
+    values.push(input.outputUrl);
+  }
+  if (sets.length === 0) return;
+
+  sets.push("updated_at = CURRENT_TIMESTAMP");
+  values.push(input.id);
+
+  db.prepare(`UPDATE works SET ${sets.join(', ')} WHERE id = ?`).run(...values);
+}
+
 export function mapWork(row: WorkRow) {
   let inputParams: Record<string, unknown> = {};
   try {

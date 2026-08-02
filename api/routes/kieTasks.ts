@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express';
 import { taskResults } from './kieCallback.js';
 import { queryKieTask, normalizeKieResult } from '../services/kieAdapter.js';
 import { readProviderConfig } from '../services/providerService.js';
+import { updateWorkById } from '../services/workService.js';
 
 const router = express.Router();
 
@@ -48,10 +49,15 @@ router.get('/tasks/:taskId', async (req: Request, res: Response): Promise<void> 
     const result = await queryKieTask(baseUrl, apiKey, taskId);
     console.log(`[kieTasks] KIE返回: state=${result.state || result.status}, resultUrl=${result.resultUrl ? 'yes' : 'no'}`);
 
-    // 如果任务已完成，也缓存结果
+    // 如果任务已完成，也缓存结果并同步更新数据库
     const normalized = normalizeKieResult(result);
     if (normalized.status === 'success' || normalized.status === 'failed') {
       taskResults.set(taskId, result);
+      updateWorkById({
+        id: taskId,
+        status: normalized.status === 'success' ? 'complete' : 'failed',
+        outputUrl: normalized.url || null,
+      });
     }
 
     res.status(200).json({

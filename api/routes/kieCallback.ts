@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from 'express';
-import type { KieTaskResult } from '../services/kieAdapter.js';
+import { normalizeKieResult, type KieTaskResult } from '../services/kieAdapter.js';
+import { updateWorkById } from '../services/workService.js';
 
 const router = express.Router();
 
@@ -67,7 +68,17 @@ router.post('/callback', (req: Request, res: Response): void => {
 
   taskResults.set(taskId, result);
 
-  console.log(`[KIE Callback] 任务 ${taskId} 状态: ${status}`);
+  // 使用 normalizeKieResult 统一提取状态与 URL（兼容 resultUrl/resultUrls/video_url/image_url）
+  const normalized = normalizeKieResult(result);
+  const workStatus = normalized.status === 'success' ? 'complete' : normalized.status === 'failed' ? 'failed' : 'pending';
+  updateWorkById({
+    id: taskId,
+    status: workStatus,
+    outputUrl: normalized.url || null,
+  });
+
+  console.log(`[KIE Callback] 任务 ${taskId} 状态: ${status}, 作品已更新为 ${workStatus}, url=${normalized.url ? 'yes' : 'no'}`);
+  console.log(`[KIE Callback] 完整回调体: ${JSON.stringify(body)}`);
 
   res.status(200).json({ success: true, taskId });
 });
