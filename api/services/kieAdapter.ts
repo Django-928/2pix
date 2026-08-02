@@ -64,6 +64,8 @@ export async function createKieTask(
     callbackUrl: `${process.env.PUBLIC_URL || 'https://www.2pix.cn'}/api/kie/callback`,
   };
 
+  console.log(`[createKieTask] request body=${JSON.stringify(body)}`);
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -74,6 +76,8 @@ export async function createKieTask(
   });
 
   const raw = await response.json().catch(() => ({})) as KieApiResponse<{ taskId: string }>;
+
+  console.log(`[createKieTask] response status=${response.status} raw=${JSON.stringify(raw)}`);
 
   if (!response.ok || raw.code !== 200) {
     throw new Error(`KIE createTask 失败：${raw.msg || `HTTP ${response.status}`}`);
@@ -216,6 +220,10 @@ const STYLE_TO_GUIDANCE_SCALE: Record<string, number> = {
   low: 1.5,
 };
 
+function hasValue(value: unknown): value is string | number | boolean {
+  return value !== undefined && value !== null && value !== '';
+}
+
 /**
  * 将前端传来的通用参数映射为 KIE API 的 input 格式
  *
@@ -236,16 +244,19 @@ export function mapParamsToKieInput(
 
   if (!params) return input;
 
-  const isImageModel = (upstreamModel.includes('image') || upstreamModel.includes('seedream') || upstreamModel.includes('flux') || upstreamModel.includes('grok-imagine')) && !upstreamModel.includes('video');
-  const isVideoModel = upstreamModel.includes('video') || upstreamModel.includes('seedance') || upstreamModel.includes('kling');
+  const um = upstreamModel.toLowerCase();
+  const isImageModel = (um.includes('image') || um.includes('seedream') || um.includes('flux') || um.includes('grok-imagine')) && !um.includes('video');
+  const isVideoModel = um.includes('video') || um.includes('seedance') || um.includes('kling');
+  const isKlingVideo = isVideoModel && um.includes('kling');
+  const isSeedanceVideo = isVideoModel && um.includes('seedance');
 
   // seed
-  if (params.seed !== undefined && params.seed !== null && params.seed !== '') {
+  if (hasValue(params.seed)) {
     input.seed = Number(params.seed);
   }
 
   // style → guidance_scale（仅 image）
-  if (isImageModel && params.style !== undefined && params.style !== null) {
+  if (isImageModel && hasValue(params.style)) {
     const styleStr = String(params.style).toLowerCase();
     if (STYLE_TO_GUIDANCE_SCALE[styleStr]) {
       input.guidance_scale = STYLE_TO_GUIDANCE_SCALE[styleStr];
@@ -253,43 +264,76 @@ export function mapParamsToKieInput(
   }
 
   // resolution → image_size（仅 image）
-  if (isImageModel && params.resolution !== undefined && params.resolution !== null) {
+  if (isImageModel && hasValue(params.resolution)) {
     const resStr = String(params.resolution);
     const mapped = RESOLUTION_TO_IMAGE_SIZE[resStr];
-    if (mapped) {
-      input.image_size = mapped;
-    } else {
-      input.image_size = resStr;
-    }
+    input.image_size = mapped || resStr;
   }
 
   // aspectRatio（image 和 video 都支持）
-  if (params.aspectRatio !== undefined && params.aspectRatio !== null && params.aspectRatio !== '') {
+  if (hasValue(params.aspectRatio)) {
     input.aspect_ratio = String(params.aspectRatio);
   }
 
-  // duration（仅 video）
-  if (isVideoModel && params.duration !== undefined && params.duration !== null) {
-    input.duration = String(params.duration);
+  // Video 模型参数
+  if (isVideoModel) {
+    // duration：Seedance 需要 number，其余统一用字符串
+    if (hasValue(params.duration)) {
+      const durationNum = Number(params.duration);
+      if (isSeedanceVideo) {
+        input.duration = durationNum;
+      } else {
+        input.duration = String(params.duration);
+      }
+    }
+
+    // 分辨率/画质模式
+    if (hasValue(params.resolution)) {
+      const resStr = String(params.resolution);
+      if (isKlingVideo) {
+        // Kling 系列必填 mode 字段（std/pro/4K），由前端 resolution 映射
+        input.mode = resStr === '480p' ? 'std' : 'pro';
+      } else {
+        // 其他视频模型直接透传 resolution（如 480p/720p/1080p）
+        input.resolution = resStr;
+      }
+    }
+
+    // 参考图片：Seedance 用 input_urls，其余用 image_urls
+    if (imageUrls && imageUrls.length > 0) {
+      if (isSeedanceVideo) {
+        input.input_urls = imageUrls;
+      } else {
+        input.image_urls = imageUrls;
+      }
+    }
+
+    // Kling 系列必填字段
+    if (isKlingVideo) {
+      input.sound = params.sound === true || params.sound === 'true';
+      input.multi_shots = params.multi_shots === true || params.multi_shots === 'true' || false;
+    }
+
+    // Seedance 系列常用可选字段
+    if (isSeedanceVideo) {
+      input.generate_audio = params.generate_audio === true || params.generate_audio === 'true';
+      input.fixed_lens = params.fixed_lens === true || params.fixed_lens === 'true';
+    }
   }
 
-  // resolution → resolution（仅 video，如 "720p", "1080p"）
-  if (isVideoModel && params.resolution !== undefined && params.resolution !== null) {
-    input.resolution = String(params.resolution);
-  }
-
-  // imageUrls → image_urls（图生视频）
-  if (isVideoModel && imageUrls && imageUrls.length > 0) {
-    input.image_urls = imageUrls;
-  }
-
-  // 其他未识别参数直接透传
-  const reservedKeys = new Set(['seed', 'style', 'resolution', 'aspectRatio', 'duration', 'imageUrls', 'messages', 'steps', 'cfgScale', 'count', 'referenceImages', 'advanced']);
+  // 其他未识别参数直接透传（不覆盖已设置字段）
+  const reservedKeys = new Set([
+    'seed', 'style', 'resolution', 'aspectRatio', 'duration',
+    'imageUrls', 'messages', 'steps', 'cfgScale', 'count',
+    'referenceImages', 'advanced', 'sound', 'multi_shots',
+    'generate_audio', 'fixed_lens', 'mode',
+  ]);
   for (const [key, value] of Object.entries(params)) {
     if (!reservedKeys.has(key) && input[key] === undefined) {
       input[key] = value;
     }
   }
 
+  console.log(`[mapParamsToKieInput] model=${upstreamModel} input=${JSON.stringify(input)}`);
   return input;
 }
