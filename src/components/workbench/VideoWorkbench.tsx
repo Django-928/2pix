@@ -207,16 +207,41 @@ function VideoCard({
   );
 }
 
+/* ── 单个模型状态 ── */
+interface ModelState {
+  messages: VideoMessage[];
+  prompt: string;
+  resolution: string;
+  duration: string;
+  aspectRatio: string;
+  referenceImages: string[];
+  billingError: string;
+}
+
+const defaultModelState: ModelState = {
+  messages: [],
+  prompt: '',
+  resolution: '720p',
+  duration: '5',
+  aspectRatio: '16:9',
+  referenceImages: [],
+  billingError: '',
+};
+
 /* ─────────────── 视频工作台 ─────────────── */
 export default function VideoWorkbench({ model }: { model: AIModel }) {
-  const [prompt, setPrompt] = useState('');
-  const [resolution, setResolution] = useState('720p');
-  const [duration, setDuration] = useState('5');
-  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [modelStateMap, setModelStateMap] = useState<Record<string, ModelState>>({});
+  const currentState = modelStateMap[model.id] ?? defaultModelState;
+  const { messages, prompt, resolution, duration, aspectRatio, referenceImages, billingError } = currentState;
+
+  const updateCurrentState = (updater: (prev: ModelState) => ModelState) => {
+    setModelStateMap((prev) => {
+      const current = prev[model.id] ?? { ...defaultModelState };
+      return { ...prev, [model.id]: updater(current) };
+    });
+  };
+
   const numVideos = 1;
-  const [referenceImages, setReferenceImages] = useState<string[]>([]);
-  const [billingError, setBillingError] = useState('');
-  const [messages, setMessages] = useState<VideoMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadProjects = useStore((s) => s.loadProjects);
@@ -243,7 +268,10 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
       if (file) {
         const reader = new FileReader();
         reader.onload = (event) => {
-          setReferenceImages((prev) => [...prev, event.target?.result as string]);
+          updateCurrentState((prev) => ({
+            ...prev,
+            referenceImages: [...prev.referenceImages, event.target?.result as string],
+          }));
         };
         reader.readAsDataURL(file);
       }
@@ -253,7 +281,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
-    setBillingError('');
+    updateCurrentState((prev) => ({ ...prev, billingError: '' }));
 
     const userContent = prompt.trim();
     const userParams = { resolution, duration, aspectRatio };
@@ -272,18 +300,22 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
       videos: [],
     };
 
-    setMessages((prev) => [...prev, userMsg, aiMsg]);
-    setPrompt('');
+    updateCurrentState((prev) => ({
+      ...prev,
+      messages: [...prev.messages, userMsg, aiMsg],
+      prompt: '',
+    }));
 
     // 匀速进度条：从 0 匀速增长到 95%（等待后端响应或轮询完成）
     progressTimerRef.current = setInterval(() => {
-      setMessages((prev) =>
-        prev.map((m) =>
+      updateCurrentState((prev) => ({
+        ...prev,
+        messages: prev.messages.map((m) =>
           m.type === 'ai' && m.id === aiMsgId && m.status === 'generating'
             ? { ...m, progress: Math.min(m.progress + 2, 95) }
             : m
-        )
-      );
+        ),
+      }));
     }, 800);
 
     const finishProgressTimer = () => {
@@ -291,13 +323,14 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
         clearInterval(progressTimerRef.current);
         progressTimerRef.current = null;
       }
-      setMessages((prev) =>
-        prev.map((m) =>
+      updateCurrentState((prev) => ({
+        ...prev,
+        messages: prev.messages.map((m) =>
           m.type === 'ai' && m.id === aiMsgId && m.status === 'generating'
             ? { ...m, progress: 100 }
             : m
-        )
-      );
+        ),
+      }));
     };
 
     try {
@@ -324,13 +357,14 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
               resolution,
               aspectRatio,
             };
-            setMessages((prev) =>
-              prev.map((m) =>
+            updateCurrentState((prev) => ({
+              ...prev,
+              messages: prev.messages.map((m) =>
                 m.type === 'ai' && m.id === aiMsgId
                   ? { ...m, status: 'complete', videos: [newVideoItem], progress: 100 }
                   : m
-              )
-            );
+              ),
+            }));
           } else if (result.taskId) {
             // 情况2：后端轮询超时，只有 taskId → 前端自行轮询
             // 先不停止 progressTimer，让匀速进度条继续运行
@@ -339,13 +373,14 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
               intervalMs: 3000,
               onProgress: (percent) => {
                 // 轮询进度覆盖匀速进度
-                setMessages((prev) =>
-                  prev.map((m) =>
+                updateCurrentState((prev) => ({
+                  ...prev,
+                  messages: prev.messages.map((m) =>
                     m.type === 'ai' && m.id === aiMsgId && m.status === 'generating'
                       ? { ...m, progress: percent }
                       : m
-                  )
-                );
+                  ),
+                }));
               },
             });
 
@@ -358,38 +393,41 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
                 resolution,
                 aspectRatio,
               };
-              setMessages((prev) =>
-                prev.map((m) =>
+              updateCurrentState((prev) => ({
+                ...prev,
+                messages: prev.messages.map((m) =>
                   m.type === 'ai' && m.id === aiMsgId
                     ? { ...m, status: 'complete', videos: [newVideoItem], progress: 100 }
                     : m
-                )
-              );
+                ),
+              }));
             } else {
               const reason = pollResult?.status === 'Failed' ? '任务失败' : '轮询超时';
               const errorText = `视频${reason}，请重试`;
               toast.error(errorText);
-              setBillingError(errorText);
-              setMessages((prev) =>
-                prev.map((m) =>
+              updateCurrentState((prev) => ({
+                ...prev,
+                billingError: errorText,
+                messages: prev.messages.map((m) =>
                   m.type === 'ai' && m.id === aiMsgId
                     ? { ...m, status: 'error', error: errorText, progress: 100 }
                     : m
-                )
-              );
+                ),
+              }));
             }
           } else {
             // 既没有 URL 也没有 taskId，报错
             const errorText = '未返回视频地址或任务ID，请检查模型配置';
             toast.error(errorText);
-            setBillingError(errorText);
-            setMessages((prev) =>
-              prev.map((m) =>
+            updateCurrentState((prev) => ({
+              ...prev,
+              billingError: errorText,
+              messages: prev.messages.map((m) =>
                 m.type === 'ai' && m.id === aiMsgId
                   ? { ...m, status: 'error', error: errorText, progress: 100 }
                   : m
-              )
-            );
+              ),
+            }));
           }
 
           loadProjects();
@@ -397,33 +435,19 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
       });
     } catch (error) {
       const errorText = error instanceof Error ? error.message : '生成失败';
-      setBillingError(errorText);
-      setMessages((prev) =>
-        prev.map((m) =>
+      updateCurrentState((prev) => ({
+        ...prev,
+        billingError: errorText,
+        messages: prev.messages.map((m) =>
           m.type === 'ai' && m.id === aiMsgId
             ? { ...m, status: 'error', error: errorText, progress: 100 }
             : m
-        )
-      );
+        ),
+      }));
     } finally {
       finishProgressTimer();
     }
   };
-
-  // 切换模型时重置所有状态
-  useEffect(() => {
-    if (progressTimerRef.current) {
-      clearInterval(progressTimerRef.current);
-      progressTimerRef.current = null;
-    }
-    setMessages([]);
-    setPrompt('');
-    setResolution('720p');
-    setDuration('5');
-    setAspectRatio('16:9');
-    setReferenceImages([]);
-    setBillingError('');
-  }, [model.id]);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -455,7 +479,11 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
           {/* 快捷提示词 */}
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
             {samplePrompts.map((text) => (
-              <PromptCard key={text} text={text} onClick={() => setPrompt(text)} />
+              <PromptCard
+                key={text}
+                text={text}
+                onClick={() => updateCurrentState((prev) => ({ ...prev, prompt: text }))}
+              />
             ))}
           </div>
         </div>
@@ -612,7 +640,12 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
                 >
                   <img src={img} alt="参考素材" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   <button
-                    onClick={() => setReferenceImages((prev) => prev.filter((_, idx) => idx !== i))}
+                    onClick={() =>
+                      updateCurrentState((prev) => ({
+                        ...prev,
+                        referenceImages: prev.referenceImages.filter((_, idx) => idx !== i),
+                      }))
+                    }
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
                     style={{ background: '#ef4444' }}
                   >
@@ -654,7 +687,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
             {/* 文本输入（占满宽度） */}
             <textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={(e) => updateCurrentState((prev) => ({ ...prev, prompt: e.target.value }))}
               placeholder="描述你想要的视频画面，包括场景、人物、动作、运镜、氛围..."
               className="w-full bg-transparent text-sm resize-none outline-none min-h-[48px] max-h-[120px]"
               style={{
@@ -674,21 +707,21 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
                   label="画质"
                   value={resolution}
                   options={['480p', '720p', '1080p']}
-                  onChange={setResolution}
+                  onChange={(v) => updateCurrentState((prev) => ({ ...prev, resolution: v }))}
                 />
                 {/* 时长 */}
                 <ParamCapsule
                   label="时长"
                   value={`${duration}秒`}
                   options={['5秒', '10秒', '15秒']}
-                  onChange={(v) => setDuration(v.replace('秒', ''))}
+                  onChange={(v) => updateCurrentState((prev) => ({ ...prev, duration: v.replace('秒', '') }))}
                 />
                 {/* 比例 */}
                 <ParamCapsule
                   label="比例"
                   value={aspectRatio}
                   options={['16:9', '9:16', '1:1']}
-                  onChange={setAspectRatio}
+                  onChange={(v) => updateCurrentState((prev) => ({ ...prev, aspectRatio: v }))}
                 />
               </div>
 
