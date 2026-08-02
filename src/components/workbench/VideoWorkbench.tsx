@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Download,
   Play,
@@ -6,7 +6,6 @@ import {
   Upload,
   Film,
   Clock,
-  AlertCircle,
 } from 'lucide-react';
 import type { AIModel } from '@/data/models';
 import { useStore } from '@/store/useStore';
@@ -39,6 +38,29 @@ interface VideoItem {
   aspectRatio: string;
   thumbnail?: string;
 }
+
+/* ── 对话消息 ── */
+interface UserVideoMessage {
+  type: 'user';
+  id: string;
+  content: string;
+  params: {
+    resolution: string;
+    duration: string;
+    aspectRatio: string;
+  };
+}
+
+interface AiVideoMessage {
+  type: 'ai';
+  id: string;
+  status: 'generating' | 'complete' | 'error';
+  progress: number;
+  videos: VideoItem[];
+  error?: string;
+}
+
+type VideoMessage = UserVideoMessage | AiVideoMessage;
 
 /* ─────────────── 快捷提示词卡片 ─────────────── */
 function PromptCard({ text, onClick }: { text: string; onClick: () => void }) {
@@ -193,19 +215,16 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [cameraMove, setCameraMove] = useState('固定');
   const numVideos = 1;
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [billingError, setBillingError] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [generatedVideos, setGeneratedVideos] = useState<VideoItem[]>([]);
-  const [progress, setProgress] = useState(0);
-  const download = useFileDownload();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [messages, setMessages] = useState<VideoMessage[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadProjects = useStore((s) => s.loadProjects);
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
   const toast = useToast();
+
+  const isGenerating = messages.some((m) => m.type === 'ai' && m.status === 'generating');
 
   const samplePrompts = [
     '一个宇航员在火星上跳舞，红色沙丘背景，电影级运镜',
@@ -236,18 +255,51 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setBillingError('');
-    setGeneratedVideo(null);
-    setIsGenerating(true);
-    setProgress(0);
+
+    const userContent = prompt.trim();
+    const userParams = { resolution, duration, aspectRatio };
+    const userMsg: UserVideoMessage = {
+      type: 'user',
+      id: `user-${Date.now()}`,
+      content: userContent,
+      params: userParams,
+    };
+    const aiMsgId = `ai-${Date.now()}`;
+    const aiMsg: AiVideoMessage = {
+      type: 'ai',
+      id: aiMsgId,
+      status: 'generating',
+      progress: 0,
+      videos: [],
+    };
+
+    setMessages((prev) => [...prev, userMsg, aiMsg]);
+    setPrompt('');
 
     // 匀速进度条：从 0 匀速增长到 95%（等待后端响应或轮询完成）
     progressTimerRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) return prev;
-        // 每次增长约 2%，模拟匀速（800ms 间隔 * ~2% ≈ 95% 需要 ~38s）
-        return Math.min(prev + 2, 95);
-      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.type === 'ai' && m.id === aiMsgId && m.status === 'generating'
+            ? { ...m, progress: Math.min(m.progress + 2, 95) }
+            : m
+        )
+      );
     }, 800);
+
+    const finishProgressTimer = () => {
+      if (progressTimerRef.current) {
+        clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.type === 'ai' && m.id === aiMsgId && m.status === 'generating'
+            ? { ...m, progress: 100 }
+            : m
+        )
+      );
+    };
 
     try {
       await runBillableTask({
@@ -258,7 +310,7 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
         onBalanceChange: refreshBalance,
         run: async () => {
           const result = await api.post<ProviderGenerationResponse>('/video/generate', {
-            prompt,
+            prompt: userContent,
             model: model.id,
             resolution,
             duration,
@@ -266,7 +318,6 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
             ...(referenceImages.length > 0 ? { referenceImages } : {}),
           });
           if (result.url) {
-            setGeneratedVideo(result.url);
             const newVideoItem: VideoItem = {
               id: `vid-${Date.now()}`,
               url: result.url,
@@ -274,7 +325,13 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
               resolution,
               aspectRatio,
             };
-            setGeneratedVideos((prev) => [newVideoItem, ...prev]);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.type === 'ai' && m.id === aiMsgId
+                  ? { ...m, status: 'complete', videos: [newVideoItem], progress: 100 }
+                  : m
+              )
+            );
           } else if (result.taskId) {
             // 情况2：后端轮询超时，只有 taskId → 前端自行轮询
             // 先不停止 progressTimer，让匀速进度条继续运行
@@ -283,13 +340,18 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
               intervalMs: 3000,
               onProgress: (percent) => {
                 // 轮询进度覆盖匀速进度
-                setProgress(percent);
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.type === 'ai' && m.id === aiMsgId && m.status === 'generating'
+                      ? { ...m, progress: percent }
+                      : m
+                  )
+                );
               },
             });
 
             if (pollResult?.url) {
               const videoUrl = pollResult.url;
-              setGeneratedVideo(videoUrl);
               const newVideoItem: VideoItem = {
                 id: `vid-${Date.now()}`,
                 url: videoUrl,
@@ -297,59 +359,67 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
                 resolution,
                 aspectRatio,
               };
-              setGeneratedVideos((prev) => [newVideoItem, ...prev]);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.type === 'ai' && m.id === aiMsgId
+                    ? { ...m, status: 'complete', videos: [newVideoItem], progress: 100 }
+                    : m
+                )
+              );
             } else {
               const reason = pollResult?.status === 'Failed' ? '任务失败' : '轮询超时';
-              toast.error(`视频${reason}，请重试`);
-              setBillingError(`视频${reason}，请重试`);
+              const errorText = `视频${reason}，请重试`;
+              toast.error(errorText);
+              setBillingError(errorText);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.type === 'ai' && m.id === aiMsgId
+                    ? { ...m, status: 'error', error: errorText, progress: 100 }
+                    : m
+                )
+              );
             }
           } else {
             // 既没有 URL 也没有 taskId，报错
-            toast.error('未返回视频地址或任务ID，请检查模型配置');
-            setBillingError('未返回视频地址或任务ID，请检查模型配置');
+            const errorText = '未返回视频地址或任务ID，请检查模型配置';
+            toast.error(errorText);
+            setBillingError(errorText);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.type === 'ai' && m.id === aiMsgId
+                  ? { ...m, status: 'error', error: errorText, progress: 100 }
+                  : m
+              )
+            );
           }
 
           loadProjects();
         },
       });
     } catch (error) {
-      setBillingError(error instanceof Error ? error.message : '生成失败');
+      const errorText = error instanceof Error ? error.message : '生成失败';
+      setBillingError(errorText);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.type === 'ai' && m.id === aiMsgId
+            ? { ...m, status: 'error', error: errorText, progress: 100 }
+            : m
+        )
+      );
     } finally {
-      if (progressTimerRef.current) {
-        clearInterval(progressTimerRef.current);
-        progressTimerRef.current = null;
-      }
-      setProgress(100);
-      setIsGenerating(false);
+      finishProgressTimer();
     }
   };
 
-  const handleDownload = async () => {
-    if (!generatedVideo) return;
-    await download({
-      url: generatedVideo,
-      filename: `generated-video-${model.id}-${Date.now()}.mp4`,
-      fallback: () => window.open(generatedVideo, '_blank'),
-    });
-  };
-
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  useMediaEvents(videoRef, setIsPlaying);
+  // 自动滚动到底部
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg-workbench, #0a0a0a)' }}>
       {/* ═══════ 空状态 ═══════ */}
-      {!generatedVideo && !isGenerating && (
+      {messages.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           {/* 模型 Logo */}
           <div
@@ -377,62 +447,113 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
         </div>
       )}
 
-      {/* ═══════ 生成中 Loading ═══════ */}
-      {isGenerating && !generatedVideo && (
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
-          {/* 旋转动画 */}
-          <div className="relative w-20 h-20">
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{ border: '2px solid rgba(139,92,246,0.15)' }}
-            />
-            <div
-              className="absolute inset-0 rounded-full animate-spin"
-              style={{
-                border: '2px solid transparent',
-                borderTopColor: '#8b5cf6',
-                borderRightColor: 'transparent',
-                borderBottomColor: 'transparent',
-                borderLeftColor: 'transparent',
-              }}
-            />
-            <Film
-              className="absolute inset-0 m-auto w-7 h-7"
-              style={{ color: '#8b5cf6' }}
-            />
-          </div>
-          <p className="mt-5 text-sm" style={{ color: '#71717a' }}>
-            正在生成视频，请稍候...
-          </p>
-          {/* 进度条 */}
-          <div
-            className="mt-4 w-56 h-1.5 rounded-full overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.06)' }}
-          >
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${Math.min(progress, 100)}%`,
-                background: 'linear-gradient(90deg, #8b5cf6, #6366f1)',
-              }}
-            />
-          </div>
-          <p className="mt-2 text-xs" style={{ color: '#52525b' }}>
-            {Math.round(Math.min(progress, 100))}%
-          </p>
-        </div>
-      )}
-
-      {/* ═══════ 生成结果 - 视频网格 ═══════ */}
-      {generatedVideos.length > 0 && !isGenerating && (
+      {/* ═══════ 对话消息列表 ═══════ */}
+      {messages.length > 0 && (
         <div className="flex-1 overflow-y-auto px-4 py-6">
-          <div className="max-w-4xl mx-auto space-y-4">
-            {/* 视频网格 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {generatedVideos.map((item, i) => (
-                <VideoCard key={item.id} item={item} index={i} />
-              ))}
-            </div>
+          <div className="max-w-4xl mx-auto space-y-6">
+            {messages.map((msg) => {
+              if (msg.type === 'user') {
+                return (
+                  <div key={msg.id} className="flex justify-end">
+                    <div
+                      className="max-w-[80%] rounded-2xl px-5 py-3 text-sm"
+                      style={{
+                        background: 'rgba(139,92,246,0.15)',
+                        border: '1px solid rgba(139,92,246,0.25)',
+                        color: '#e4e4e7',
+                      }}
+                    >
+                      <p>{msg.content}</p>
+                      <div className="flex items-center gap-2 mt-2 text-[11px]" style={{ color: '#a78bfa' }}>
+                        <span>{msg.params.resolution}</span>
+                        <span>·</span>
+                        <span>{msg.params.duration}s</span>
+                        <span>·</span>
+                        <span>{msg.params.aspectRatio}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={msg.id} className="flex justify-start">
+                  <div className="max-w-[90%] w-full space-y-3">
+                    {/* AI 生成中/完成状态 */}
+                    {msg.status === 'generating' && (
+                      <div
+                        className="rounded-2xl px-5 py-4"
+                        style={{
+                          background: 'var(--bg-card, #1c1c1e)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                        }}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="relative w-8 h-8">
+                            <div
+                              className="absolute inset-0 rounded-full"
+                              style={{ border: '2px solid rgba(139,92,246,0.15)' }}
+                            />
+                            <div
+                              className="absolute inset-0 rounded-full animate-spin"
+                              style={{
+                                border: '2px solid transparent',
+                                borderTopColor: '#8b5cf6',
+                              }}
+                            />
+                            <Film className="absolute inset-0 m-auto w-4 h-4" style={{ color: '#8b5cf6' }} />
+                          </div>
+                          <div>
+                            <p className="text-sm text-white">正在生成视频</p>
+                            <p className="text-xs" style={{ color: '#71717a' }}>
+                              请稍候，视频正在创作中...
+                            </p>
+                          </div>
+                        </div>
+                        {/* 进度条 */}
+                        <div
+                          className="w-full h-1.5 rounded-full overflow-hidden"
+                          style={{ background: 'rgba(255,255,255,0.06)' }}
+                        >
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${Math.min(msg.progress, 100)}%`,
+                              background: 'linear-gradient(90deg, #8b5cf6, #6366f1)',
+                            }}
+                          />
+                        </div>
+                        <p className="mt-2 text-xs text-right" style={{ color: '#52525b' }}>
+                          {Math.round(Math.min(msg.progress, 100))}%
+                        </p>
+                      </div>
+                    )}
+
+                    {msg.status === 'complete' && msg.videos.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {msg.videos.map((item, i) => (
+                          <VideoCard key={item.id} item={item} index={i} />
+                        ))}
+                      </div>
+                    )}
+
+                    {msg.status === 'error' && (
+                      <div
+                        className="rounded-2xl px-4 py-3 text-sm"
+                        style={{
+                          color: '#fca5a5',
+                          background: 'rgba(239,68,68,0.1)',
+                          border: '1px solid rgba(239,68,68,0.2)',
+                        }}
+                      >
+                        {msg.error || '生成失败'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
           </div>
         </div>
       )}
