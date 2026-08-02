@@ -266,6 +266,10 @@ export function WorkbenchMain({
           <div className="w-full h-full overflow-hidden">
             <ImageWorkbench model={activeModel} />
           </div>
+        ) : activeModel.category === 'video' ? (
+          <div className="w-full h-full overflow-hidden">
+            <VideoWorkbench model={activeModel} />
+          </div>
         ) : (
           <div className="text-center space-y-5 max-w-md">
             <div
@@ -294,8 +298,8 @@ export function WorkbenchMain({
         )}
       </div>
 
-      {/* 下 1/3 输入区（聊天和图片模式不需要，输入框已内置在 Workbench 中） */}
-      {activeModel.category !== 'chat' && activeModel.category !== 'image' && (
+      {/* 下 1/3 输入区（聊天、图片、视频模式不需要，输入框已内置在 Workbench 中） */}
+      {activeModel.category !== 'chat' && activeModel.category !== 'image' && activeModel.category !== 'video' && (
         <div
           className="flex-1 min-h-0 flex flex-col justify-end p-6 pb-8 z-10"
           style={{

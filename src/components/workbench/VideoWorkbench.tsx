@@ -213,7 +213,6 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
   const [resolution, setResolution] = useState('720p');
   const [duration, setDuration] = useState('5');
   const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [cameraMove, setCameraMove] = useState('固定');
   const numVideos = 1;
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [billingError, setBillingError] = useState('');
