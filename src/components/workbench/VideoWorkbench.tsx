@@ -410,6 +410,21 @@ export default function VideoWorkbench({ model }: { model: AIModel }) {
     }
   };
 
+  // 切换模型时重置所有状态
+  useEffect(() => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    setMessages([]);
+    setPrompt('');
+    setResolution('720p');
+    setDuration('5');
+    setAspectRatio('16:9');
+    setReferenceImages([]);
+    setBillingError('');
+  }, [model.id]);
+
   // 自动滚动到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
