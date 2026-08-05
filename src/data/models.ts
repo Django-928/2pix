@@ -22,22 +22,8 @@ export const aiModels: AIModel[] = [
     tags: ["新品", "聊天"],
     isNew: true,
   },
-  {
-    id: "claude-fable-5",
-    name: "Claude Fable 5",
-    description: "Anthropic Mythos 级通用模型，擅长长程编程、复杂知识推理及多步智能体任务。",
-    category: "chat",
-    icon: "/icons/models/claude-color.svg",
-    tags: ["聊天"],
-  },
-  {
-    id: "claude-haiku-4-5",
-    name: "Claude Haiku 4.5",
-    description: "Anthropic 轻量级 AI 模型，专为快速、低成本应用设计，性能接近高端模型。",
-    category: "chat",
-    icon: "/icons/models/claude-color.svg",
-    tags: ["聊天"],
-  },
+  
+  
   {
     id: "claude-opus-4-5",
     name: "Claude Opus 4.5",
@@ -62,14 +48,7 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/claude-color.svg",
     tags: ["聊天"],
   },
-  {
-    id: "claude-opus-4-8",
-    name: "Claude Opus 4.8",
-    description: "在复杂推理、智能体编程及专业知识工作方面实现重大升级，综合能力显著提升。",
-    category: "chat",
-    icon: "/icons/models/claude-color.svg",
-    tags: ["聊天"],
-  },
+  
   {
     id: "claude-sonnet-4-5",
     name: "Claude Sonnet 4.5",
@@ -86,14 +65,7 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/claude-color.svg",
     tags: ["聊天"],
   },
-  {
-    id: "claude-sonnet-5",
-    name: "Claude Sonnet 5",
-    description: "多模态智能体接口，性能接近 Opus 级别，支持原生计算机操作与视觉理解。",
-    category: "chat",
-    icon: "/icons/models/claude-color.svg",
-    tags: ["聊天"],
-  },
+  
   {
     id: "gemini-2.5-flash",
     name: "Gemini 2.5 Flash",
@@ -166,14 +138,7 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/openai-color.svg",
     tags: ["聊天"],
   },
-  {
-    id: "gpt-5-6",
-    name: "GPT-5.6",
-    description: "GPT-5.6 整合 Sol、Terra 和 Luna 三层架构，覆盖前沿智能、日常高效及轻量任务。",
-    category: "chat",
-    icon: "/icons/models/openai-color.svg",
-    tags: ["聊天"],
-  },
+  
   {
     id: "codex",
     name: "OpenAI Codex",
@@ -182,22 +147,8 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/openai-color.svg",
     tags: ["聊天"],
   },
-  {
-    id: "grok-4-3",
-    name: "Grok 4.3",
-    description: "xAI 旗舰推理模型，以业界领先的低幻觉率和深度洞察力著称。",
-    category: "chat",
-    icon: "/icons/models/grok-color.svg",
-    tags: ["聊天"],
-  },
-  {
-    id: "grok-4-5",
-    name: "Grok 4.5",
-    description: "xAI 最新前沿模型，专注于编程、智能体任务和知识工作，软件工程能力出色。",
-    category: "chat",
-    icon: "/icons/models/grok-color.svg",
-    tags: ["聊天"],
-  },
+  
+  
   {
     id: "gpt-image-2",
     name: "GPT Image 2",
@@ -215,14 +166,7 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/flux-color.svg",
     tags: ["文生图", "图生图"],
   },
-  {
-    id: "flux-kontext-api",
-    name: "Flux Kontext",
-    description: "FLUX.1 Kontext API 赋能图像编辑，支持基于自然语言指令的精准图像修改。",
-    category: "image",
-    icon: "/icons/models/flux-color.svg",
-    tags: ["文生图", "图生图"],
-  },
+  
   {
     id: "seedream",
     name: "Seedream 3.0",
@@ -255,14 +199,7 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/bytedance-color.svg",
     tags: ["文生图", "图生图"],
   },
-  {
-    id: "seedream-5-0-pro",
-    name: "Seedream 5.0 Pro",
-    description: "字节跳动多模态图像模型，支持可控生成、精准编辑及复杂信息渲染。",
-    category: "image",
-    icon: "/icons/models/bytedance-color.svg",
-    tags: ["文生图", "图生图"],
-  },
+  
   {
     id: "google-imagen4",
     name: "Imagen 4",
@@ -506,14 +443,7 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/gemini-color.svg",
     tags: ["文生视频", "图生视频"],
   },
-  {
-    id: "features-v3-api",
-    name: "Veo 3",
-    description: "Google DeepMind 下一代视频生成模型，支持文生视频和图生视频，画质逼真。",
-    category: "video",
-    icon: "/icons/models/google-color.svg",
-    tags: ["文生视频", "图生视频"],
-  },
+  
   {
     id: "kling-2-5",
     name: "Kling 2.5 Turbo",
@@ -570,14 +500,7 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/kling-color.svg",
     tags: ["文生视频", "图生视频"],
   },
-  {
-    id: "hailuo-api",
-    name: "Hailuo 02",
-    description: "MiniMax 高级 AI 视频生成模型，将文字或图像转化为电影感短片。",
-    category: "video",
-    icon: "/icons/models/hailuo-color.svg",
-    tags: ["文生视频", "图生视频"],
-  },
+  
   {
     id: "hailuo-2-3",
     name: "Hailuo 2.3",
@@ -594,14 +517,7 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/alibaba-color.svg",
     tags: ["语音生成视频", "唇形同步"],
   },
-  {
-    id: "runway-api",
-    name: "Runway Gen-4",
-    description: "基于 Runway AI 革命性 Gen-4 架构的 API，引领内容创作的未来。",
-    category: "video",
-    icon: "/icons/models/runway-color.svg",
-    tags: ["文生视频", "图生视频"],
-  },
+  
   {
     id: "topaz-video-upscaler",
     name: "Topaz Video Upscaler",
@@ -690,22 +606,8 @@ export const aiModels: AIModel[] = [
     icon: "/icons/models/elevenlabs-color.svg",
     tags: ["语音合成"],
   },
-  {
-    id: "gemini-2.5-pro-preview-tts",
-    name: "Gemini 2.5 Pro Preview TTS",
-    description: "Google 高端语音合成模型，专为录音棚品质、高保真音频生成而设计。",
-    category: "audio",
-    icon: "/icons/models/gemini-color.svg",
-    tags: ["语音合成"],
-  },
-  {
-    id: "gemini-3.1-flash-tts",
-    name: "Gemini 3.1 Flash TTS",
-    description: "Google 富表现力语音合成模型预览版，生成自然流畅的 AI 语音。",
-    category: "audio",
-    icon: "/icons/models/gemini-color.svg",
-    tags: ["语音合成"],
-  },
+  
+  
   {
     id: "suno-api",
     name: "Suno V5.5",

@@ -82,7 +82,7 @@ const defaultProviderConfig: ProviderConfig = {
         { localModel: 'gpt-image-2', upstreamModel: 'gpt-image-2', category: 'image', enabled: true },
         { localModel: 'seedream-4', upstreamModel: 'bytedance/seedream-v4-text-to-image', category: 'image', enabled: true },
         { localModel: 'flux-2', upstreamModel: 'flux-2/flex-text-to-image', category: 'image', enabled: true },
-        { localModel: 'wan2-7-image', upstreamModel: 'wan-2-7-image', category: 'image', enabled: true },
+        { localModel: 'wan2-7-image', upstreamModel: 'wan-2.7-image', category: 'image', enabled: true },
         { localModel: 'qwen-image-2', upstreamModel: 'qwen-image-2', category: 'image', enabled: true },
         // Video 模型（KIE createTask model 参数需带 /video 后缀）
         { localModel: 'kling-2-6', upstreamModel: 'kling-2.6/video', category: 'video', enabled: true },
@@ -101,14 +101,12 @@ const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: Provi
   // Chat 模型走融川 provider，不在此映射
   // Image
   'gpt-image-2': { upstreamModel: 'gpt-image-2-text-to-image', category: 'image' },
-  'flux-2': { upstreamModel: 'flux-2', category: 'image' },
-  'flux-kontext-api': { upstreamModel: 'flux-kontext', category: 'image' },
+  'flux-2': { upstreamModel: 'flux-2/flex-text-to-image', category: 'image' },
   'seedream': { upstreamModel: 'seedream-3.0', category: 'image' },
-  'seedream-api': { upstreamModel: 'seedream-4.0', category: 'image' },
-  'seedream-4-5': { upstreamModel: 'seedream-4.5', category: 'image' },
-  'seedream5-0-lite': { upstreamModel: 'seedream-5.0-lite', category: 'image' },
-  'seedream-5-0-pro': { upstreamModel: 'seedream-5.0-pro-text-to-image', category: 'image' },
-  'google-imagen4': { upstreamModel: 'imagen-4', category: 'image' },
+  'seedream-api': { upstreamModel: 'bytedance/seedream-v4-text-to-image', category: 'image' },
+  'seedream-4-5': { upstreamModel: 'seedream/4.5-text-to-image', category: 'image' },
+  'seedream5-0-lite': { upstreamModel: 'seedream/5.0-lite-text-to-image', category: 'image' },
+  'google-imagen4': { upstreamModel: 'imagen-4/fast', category: 'image' },
   'nano-banana-2': { upstreamModel: 'nano-banana-2', category: 'image' },
   'nano-banana-2-lite': { upstreamModel: 'nano-banana-2-lite', category: 'image' },
   'nano-banana-pro': { upstreamModel: 'nano-banana-pro', category: 'image' },
@@ -124,8 +122,8 @@ const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: Provi
   'recraft-crisp-upscale': { upstreamModel: 'recraft-crisp-upscale', category: 'image' },
   'recraft-remove-background': { upstreamModel: 'recraft-remove-background', category: 'image' },
   'topaz-image-upscale': { upstreamModel: 'topaz-image-upscale', category: 'image' },
-  'wan-2-7-image': { upstreamModel: 'wan2.7-image', category: 'image' },
-  'wan2-7-image': { upstreamModel: 'wan2.7-image', category: 'image' },
+  'wan-2-7-image': { upstreamModel: 'wan-2.7-image', category: 'image' },
+  'wan2-7-image': { upstreamModel: 'wan-2.7-image', category: 'image' },
   // Video
   'veo-3-1': { upstreamModel: 'veo-3.1/video', category: 'video' },
   'kling-3-0': { upstreamModel: 'kling-3.0/video', category: 'video' },
@@ -140,7 +138,6 @@ const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: Provi
   'bytedance-seedance-v1': { upstreamModel: 'bytedance/seedance-v1/video', category: 'video' },
   'volcengine-video-to-video-lip-sync': { upstreamModel: 'volcengine-lip-sync/video', category: 'video' },
   'gemini-omni': { upstreamModel: 'gemini-omni/video', category: 'video' },
-  'features-v3-api': { upstreamModel: 'veo-3/video', category: 'video' },
   'kling-2-5': { upstreamModel: 'kling-2.5-turbo/video', category: 'video' },
   'kling-2-6': { upstreamModel: 'kling-2.6/video', category: 'video' },
   'kling-2.6-motion-control': { upstreamModel: 'kling-2.6-motion-control/video', category: 'video' },
@@ -148,10 +145,8 @@ const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: Provi
   'kling-3-0-turbo': { upstreamModel: 'kling-3.0-turbo/video', category: 'video' },
   'kling-ai-avatar': { upstreamModel: 'kling-ai-avatar-2.0/video', category: 'video' },
   'kling-v2-1': { upstreamModel: 'kling-v2.1/video', category: 'video' },
-  'hailuo-api': { upstreamModel: 'hailuo-02/video', category: 'video' },
   'hailuo-2-3': { upstreamModel: 'hailuo-2.3/video', category: 'video' },
   'infinitalk': { upstreamModel: 'infinitalk/video', category: 'video' },
-  'runway-api': { upstreamModel: 'runway-gen4/video', category: 'video' },
   'topaz-video-upscaler': { upstreamModel: 'topaz-video-upscaler/video', category: 'video' },
   'wan-speech-to-video-turbo': { upstreamModel: 'wan-2.2-speech-to-video-turbo/video', category: 'video' },
   'wan-animate': { upstreamModel: 'wan-2.2-animate/video', category: 'video' },
@@ -164,8 +159,6 @@ const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: Provi
   // Audio
   'elevenlabs-text-to-dialogue-v3': { upstreamModel: 'elevenlabs-text-to-dialogue-v3', category: 'audio' },
   'elevenlabs-tts': { upstreamModel: 'elevenlabs-tts', category: 'audio' },
-  'gemini-2.5-pro-preview-tts': { upstreamModel: 'gemini-2.5-pro-preview-tts', category: 'audio' },
-  'gemini-3.1-flash-tts': { upstreamModel: 'gemini-3.1-flash-tts', category: 'audio' },
   'suno-api': { upstreamModel: 'suno-v5.5', category: 'audio' },
   // Chat - Gemini（OpenAI 兼容接口：/{model}/v1/chat/completions）
   'gemini-2.5-flash': { upstreamModel: 'gemini-2.5-flash', category: 'chat' },
@@ -179,22 +172,15 @@ const KIE_MODEL_MAPPING: Record<string, { upstreamModel: string; category: Provi
   // Chat - GPT 5.4/5.5/5.6（KIE codex response 接口：/codex/v1/responses）
   'gpt-5-4': { upstreamModel: 'gpt-5-4', category: 'chat' },
   'gpt-5-5': { upstreamModel: 'gpt-5-5', category: 'chat' },
-  'gpt-5-6': { upstreamModel: 'gpt-5-6-luna', category: 'chat' },
   // Chat - Codex（KIE api response 接口：/api/v1/responses）
   'codex': { upstreamModel: 'gpt-5-codex', category: 'chat' },
   // Chat - Grok（KIE grok response 接口：/grok/v1/responses）
-  'grok-4-3': { upstreamModel: 'grok-4-3', category: 'chat' },
-  'grok-4-5': { upstreamModel: 'grok-4-5', category: 'chat' },
   // Chat - Claude（Anthropic 原生接口：/claude/v1/messages）
   'claude-opus-4-5': { upstreamModel: 'claude-opus-4-5', category: 'chat' },
   'claude-opus-4-6': { upstreamModel: 'claude-opus-4-6', category: 'chat' },
   'claude-opus-4-7': { upstreamModel: 'claude-opus-4-7', category: 'chat' },
-  'claude-opus-4-8': { upstreamModel: 'claude-opus-4-8', category: 'chat' },
   'claude-sonnet-4-5': { upstreamModel: 'claude-sonnet-4-5', category: 'chat' },
   'claude-sonnet-4-6': { upstreamModel: 'claude-sonnet-4-6', category: 'chat' },
-  'claude-sonnet-5': { upstreamModel: 'claude-sonnet-5', category: 'chat' },
-  'claude-fable-5': { upstreamModel: 'claude-fable-5', category: 'chat' },
-  'claude-haiku-4-5': { upstreamModel: 'claude-haiku-4-5', category: 'chat' },
 };
 
 export function readProviderConfig(): ProviderConfig {
@@ -518,10 +504,13 @@ async function requestUpstream(input: ProviderGenerateInput, provider: ProviderI
       endpoint = input.category === 'image'
         ? `${base}/images/generations`
         : `${base}/generate`;
+      // OpenAI 兼容的图片接口使用 size 字段表示分辨率
+      const { resolution, ...restParams } = input.params || {};
       body = {
         model: upstreamModel,
         prompt: input.prompt,
-        ...input.params,
+        ...(resolution ? { size: resolution } : {}),
+        ...restParams,
       };
     }
 

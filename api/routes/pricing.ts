@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import db from '../db/index.js';
 import { authMiddleware, requirePermission, logOperation, getClientIp } from '../utils/auth.js';
+import { runPricingSync } from '../scripts/runPricingSync.js';
 
 const router = Router();
 
@@ -341,6 +342,21 @@ router.put('/admin/recharge-plans', authMiddleware, requirePermission('price:edi
     console.error('Update recharge plans error:', error);
     res.status(500).json({ success: false, error: '更新充值套餐失败' });
   }
+});
+
+/** POST /admin/sync-upstream - 手动触发上游价格同步（异步） */
+router.post('/admin/sync-upstream', authMiddleware, requirePermission('price:edit'), (req: Request, res: Response): void => {
+  res.json({
+    success: true,
+    message: '上游价格同步已启动，请在日志中查看结果',
+  });
+
+  // 异步执行，避免阻塞接口响应
+  runPricingSync().then((summary) => {
+    console.log('[admin/sync-upstream] 同步完成:', summary);
+  }).catch((err) => {
+    console.error('[admin/sync-upstream] 同步失败:', err);
+  });
 });
 
 export default router;

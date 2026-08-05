@@ -28,6 +28,11 @@ data/*.db
 data/*.db-shm
 data/*.db-wal
 data/backups/*.db
+data/logs/*
+!data/logs/.gitkeep
+
+# Auto-generated upstream pricing snapshot
+data/kie_pricing_snapshot.json
 
 # Editor directories and files
 .vscode/*
@@ -42,3 +47,6 @@ data/backups/*.db
 
 # OS files
 Thumbs.db
+
+# Backup files created by fix scripts
+*.bak-*

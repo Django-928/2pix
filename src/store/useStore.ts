@@ -7,6 +7,7 @@ interface AppStore {
   projects: Project[];
   canvasProjects: CanvasProject[];
   conversations: Conversation[];
+  conversationsLoaded: boolean;
   currentConversationId: string | null;
   canvasElements: CanvasElement[];
   loadProjects: () => Promise<void>;
@@ -33,6 +34,7 @@ export const useStore = create<AppStore>()(
       projects: [],
       canvasProjects: [],
       conversations: [],
+      conversationsLoaded: false,
       currentConversationId: null,
       canvasElements: [],
 
@@ -99,9 +101,10 @@ export const useStore = create<AppStore>()(
               role: m.role as 'user' | 'assistant',
             })),
           }));
-          set({ conversations });
+          set({ conversations, conversationsLoaded: true });
         } catch {
           // 静默失败，使用空列表
+          set({ conversationsLoaded: true });
         }
       },
 

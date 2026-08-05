@@ -249,11 +249,11 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
   const isGenerating = turns.some((t) => t.status === 'generating');
 
   const aspectRatioToSize: Record<string, string> = {
-    '1:1': '1024x1024',
-    '9:16': '768x1360',
-    '16:9': '1360x768',
-    '4:3': '1024x768',
-    '3:2': '1152x768',
+    '1:1': '1024x1024',    // square_hd
+    '9:16': '1024x1792',   // portrait_16_9
+    '16:9': '1792x1024',   // landscape_16_9
+    '4:3': '1152x896',     // landscape_4_3
+    '3:2': '1536x1024',    // landscape_3_2
   };
 
   const size = aspectRatioToSize[aspectRatio] || '1024x1024';
@@ -551,8 +551,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
         <div className="max-w-3xl mx-auto space-y-3">
           {/* 输入框容器 */}
           <div className="relative rounded-2xl bg-[var(--bg-card,#1c1c1e)] border border-white/[0.08] p-4 shadow-lg">
-            {/* 参考图上传行 - 仅空状态时显示 */}
-            {isEmpty && (
+            {/* 参考图上传行 */}
             <div className="flex items-center gap-2 mb-3 overflow-x-auto">
               {referenceImages.map((img, i) => (
                 <div key={`ref-img-${i}-${img}`} className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/[0.08] flex-shrink-0 group">
@@ -583,7 +582,6 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               />
               <span className="text-[11px] text-[#52525b] flex-shrink-0">参考图 {referenceImages.length}/10</span>
             </div>
-            )}
 
             {/* 文本输入 */}
             <textarea
@@ -600,8 +598,8 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               }}
             />
 
-            {/* 参数弹出面板 - 仅空状态时显示 */}
-            {activeTab && isEmpty && (
+            {/* 参数弹出面板 */}
+            {activeTab && (
               <div className="mt-2 pt-2 border-t border-white/[0.06]">
                 {activeTab === 'style' && (
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -660,7 +658,6 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
             )}
 
             {/* 底部工具栏 */}
-            {isEmpty ? (
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.06]">
               <div className="flex items-center gap-1">
                 {/* 风格标签按钮 */}
@@ -708,14 +705,9 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
               <div className="flex items-center gap-3">
                 <CostHint text="0.07~0.22/次" />
-                <SendButton onClick={handleGenerate} disabled={!prompt.trim() || isGenerating} loading={isGenerating} text="生成" />
+                <SendButton onClick={handleGenerate} disabled={!prompt.trim() || isGenerating} loading={isGenerating} text={isEmpty ? "生成" : "发送"} />
               </div>
             </div>
-            ) : (
-            <div className="flex items-center justify-end mt-3 pt-3 border-t border-white/[0.06]">
-              <SendButton onClick={handleGenerate} disabled={!prompt.trim() || isGenerating} loading={isGenerating} text="发送" />
-            </div>
-            )}
           </div>
         </div>
       </div>

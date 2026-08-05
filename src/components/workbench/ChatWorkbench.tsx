@@ -296,7 +296,7 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
     return () => { typewriterRef.current?.(); };
   }, []);
 
-  const { conversations, currentConversationId, createConversation, selectConversation, addMessage } =
+  const { conversations, conversationsLoaded, currentConversationId, createConversation, selectConversation, addMessage } =
     useStore();
   const refreshBalance = useAccountStore((s) => s.refreshBalance);
   const currentConversation = conversations.find((c) => c.id === currentConversationId);
@@ -307,9 +307,20 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
 
   /* ── 模型切换时：恢复该模型已有会话，否则新建会话并记住映射 ── */
   useEffect(() => {
+    // 等对话列表加载完成后再初始化，避免在加载期间重复创建空对话
+    if (!conversationsLoaded) return;
     const existingConvId = modelConversationMap[model.id];
     if (existingConvId) {
       selectConversation(existingConvId);
+      return;
+    }
+    // 内存中没有映射时，尝试从已加载的对话列表中找到该模型最近一次的对话
+    const modelConvs = conversations
+      .filter((c) => c.model === model.name || c.model === model.id)
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    if (modelConvs.length > 0) {
+      selectConversation(modelConvs[0].id);
+      setModelConversationMap((prev) => ({ ...prev, [model.id]: modelConvs[0].id }));
       return;
     }
     (async () => {
@@ -317,9 +328,8 @@ export default function ChatWorkbench({ model }: { model: AIModel }) {
       selectConversation(newConv.id);
       setModelConversationMap((prev) => ({ ...prev, [model.id]: newConv.id }));
     })();
-    // 仅在模型切换时初始化会话，避免会话状态变化时重复创建对话。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [model.id]);
+  }, [model.id, conversationsLoaded]);
 
   /* ── 打字机效果 ── */
   const typewriterEffect = useCallback(

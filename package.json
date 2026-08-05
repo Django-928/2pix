@@ -11,7 +11,11 @@
     "check": "tsc --noEmit",
     "server:dev": "nodemon",
     "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
-    "start": "NODE_ENV=production tsx api/server.ts"
+    "start": "NODE_ENV=production tsx api/server.ts",
+    "pricing:fetch": "tsx api/scripts/fetchKiePricing.ts",
+    "pricing:build": "tsx api/scripts/buildPricingMapping.ts",
+    "pricing:sync": "tsx api/scripts/syncKiePricing.ts",
+    "pricing:run": "tsx api/scripts/runPricingSync.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
