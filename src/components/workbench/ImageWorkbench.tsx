@@ -4,7 +4,7 @@ import type { AIModel } from '@/data/models';
 import { useStore } from '@/store/useStore';
 import { useAccountStore } from '@/store/useAccountStore';
 import api from '@/utils/api';
-import { getEstimatedCost, runBillableTask } from '@/utils/billing';
+import { getEstimatedCost, getEstimatedCostSync, runBillableTask } from '@/utils/billing';
 import { pollKieTask } from '@/utils/kieTaskPolling';
 import { useToast } from '@/components/ui/Toast';
 import { useFileDownload } from '@/hooks/useFileDownload';
@@ -258,6 +258,22 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
 
   const size = aspectRatioToSize[aspectRatio] || '1024x1024';
   const numImages = numImagesState;
+
+  /* 动态获取当前模型预估积分 */
+  const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getEstimatedCost('image', numImagesState, 1, model.id)
+      .then((cost) => {
+        if (!cancelled) setEstimatedCost(cost);
+      })
+      .catch(() => {
+        if (!cancelled) setEstimatedCost(getEstimatedCostSync('image', numImagesState));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [model.id, numImagesState]);
 
   /* 自动滚到底部 */
   useEffect(() => {

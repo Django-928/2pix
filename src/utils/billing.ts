@@ -99,8 +99,8 @@ export async function getEstimatedCost(
       duration: String(duration),
       model: model || 'default',
     });
-    const result = await api.get<{ credits: number }>(`/pricing/estimate?${params.toString()}`);
-    return Math.max(1, Math.ceil(result.credits || 0));
+    const result = await api.get<{ estimated_cost: number }>(`/pricing/estimate?${params.toString()}`);
+    return Math.max(1, Math.ceil(result.estimated_cost || 0));
   } catch {
     // fallback
     return getEstimatedCostSync(category, quantity, duration);
