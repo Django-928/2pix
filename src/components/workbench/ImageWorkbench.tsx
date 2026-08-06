@@ -720,7 +720,7 @@ export default function ImageWorkbench({ model }: { model: AIModel }) {
               </div>
 
               <div className="flex items-center gap-3">
-                <CostHint text="0.07~0.22/次" />
+                <CostHint text={estimatedCost !== null ? `${estimatedCost} 积分/次` : '0.07~0.22/次'} />
                 <SendButton onClick={handleGenerate} disabled={!prompt.trim() || isGenerating} loading={isGenerating} text={isEmpty ? "生成" : "发送"} />
               </div>
             </div>
